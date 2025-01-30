@@ -33,10 +33,22 @@
           <li class="nav-item">
             <a class="nav-link" href="/">Home</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://github.com/MaastrichtU-CDS/SemanticForms">GitHub</a>
+          </li>
         </ul>
         <ul class="navbar-nav ml-auto">
           <li class="nav-item">
-            <a class="nav-link" href="https://github.com/MaastrichtU-CDS/SemanticForms">GitHub</a>
+            <!-- if user is None, show as submit object -->
+            {% if user is none %}
+            <form action="/login" method="post">
+              <a href="#" class="nav-link" onclick="this.closest('form').submit(); return false;">Login</a>
+            </form>
+            {% else %}
+            <form action="/logout" method="post">
+                <a href="#" class="nav-link" onclick="this.closest('form').submit(); return false;">Logout {{ user['preferred_username'] }}</a>
+            </form>
+            {% endif %}
           </li>
         </ul>
       </nav>

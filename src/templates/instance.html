@@ -2,7 +2,8 @@
 {% block content %}
 <h1>Instance details</h1>
 
-<button type="button" class="btn btn-danger float-right mb-1" data-toggle="modal"
+{% if user %}
+<button type="button" class="btn btn-danger mb-2" data-toggle="modal"
   data-target="#deleteModal">Delete</button>
 
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal"
@@ -23,7 +24,7 @@
     </div>
   </div>
 </div>
-
+{% endif %}
 
 <table class="datatable">
   <thead>

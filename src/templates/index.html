@@ -2,20 +2,25 @@
 {% block content %}
 <h1>Filled Templates</h1>
 <div class="row">
-    <p>Please see below for all filled templates, or press the "add" button to fill in the template.</p>
+    <p>Please see below for all filled forms. To add a new form, login to the system and press the "add" button to fill in the template.</p>
     {% if template_id is defined %}
         <div class="container-fluid p-0"><a href="https://cedar.metadatacenter.org/instances/create/https://repo.metadatacenter.org/templates/{{template_id}}" role="button" class="btn btn-primary float-right mb-1" target="_blank">Add</a></div>
     {% else %}
-        <div class="container-fluid p-0"><a href="./add" role="button" class="btn btn-primary float-right mb-1">Add</a></div>
+        {% if user %}
+            <div class="container-fluid p-0"><a href="./add" role="button" class="btn btn-primary mb-2">Add</a></div>
+        {% endif %}
     {% endif %}
 </div>
 
 <div class="row">
-<table class="datatable table-striped">
+<table class="table table-striped table-responsive table-sm">
     <thead>
         <tr>
             <th scope="col">Title / ID</th>
             <th scope="col">Creation Date</th>
+            {% if user %}
+                <th scope="col"></th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -23,10 +28,12 @@
         <tr>
             <td><a href="./instance/{{ key }}">{{instances[key]["title"]}}</a></td>
             <td><time datetime="{{instances[key]['time']}}"/></td>
-            {% if template_id is defined %}
-            <td><a href="https://cedar.metadatacenter.org/instances/edit/{{ key }}" role="button" class="btn btn-secondary float-right">Edit</a></td>
-            {% else %}
-            <td><a href="./instance/{{ key }}/edit" role="button" class="btn btn-secondary float-right">Edit</a></td>
+            {% if user %}
+                {% if template_id is defined %}
+                <td><a href="https://cedar.metadatacenter.org/instances/edit/{{ key }}" role="button" class="btn btn-secondary float-right btn-sm">Edit</a></td>
+                {% else %}
+                <td><a href="./instance/{{ key }}/edit" role="button" class="btn btn-secondary float-right btn-sm">Edit</a></td>
+                {% endif %}
             {% endif %}
         </tr>
         {%endfor%}
