@@ -1,6 +1,9 @@
 from operator import truediv
-from flask import Flask, Response, request, render_template, redirect
+import flask
+from flask import Flask, Response, request, redirect, url_for, session
 from flask_cors import CORS
+from jinja2 import Template
+from pyparsing import Any
 import yaml
 import os
 import requests
@@ -10,6 +13,8 @@ from rdflib import Graph
 import logging
 import sys
 import datetime
+from authlib.integrations.flask_client import OAuth
+from dotenv import load_dotenv
 from tzlocal import get_localzone
 from persistance import FilePersistance
 
@@ -18,7 +23,19 @@ CORS(app)
 
 logging.basicConfig(level=logging.DEBUG)
 # get local timezone    
-local_tz = get_localzone() 
+local_tz = get_localzone()
+
+load_dotenv()
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+oauth = OAuth(app)
+oauth.register(
+    name="keycloak",
+    client_id=os.getenv("KEYCLOAK_CLIENT_ID"),
+    client_secret=os.getenv("KEYCLOAK_CLIENT_SECRET"),
+    server_metadata_url=os.getenv("KEYCLOAK_SERVER_METADATA_URL"),
+    client_kwargs={"scope": "openid profile email"},
+)
 
 def loadConfig(pathString):
     """
@@ -41,6 +58,16 @@ persistance = FilePersistance(folder_location=config['server']['storageFolder'],
                               title_uri=config['template']['title_predicate'],
                               base_url=config['template']['instance_base_url'] + "/instance")
 
+def render_template(
+    template_name_or_list: str | Template | list[str | Template],
+    **context: Any
+) -> str:
+    """
+    Override render_template to add user to the context
+    """
+    print(json.dumps(session.get("user"), indent=4))
+    return flask.render_template(template_name_or_list, user=session.get("user"), **context)
+
 @app.route("/")
 def index():
     instances = persistance.get_instances()
@@ -49,6 +76,26 @@ def index():
         return render_template("index.html", instances=instances, template_id=config["template"]["templateId"])
     else:
         return render_template("index.html", instances=instances)
+
+# Login page
+@app.route("/login", methods=["POST"])
+def login():
+    redirect_uri = url_for("auth", _external=True)
+    return oauth.keycloak.authorize_redirect(redirect_uri)
+
+# Auth callback
+@app.route("/auth")
+def auth():
+    token = oauth.keycloak.authorize_access_token()
+    session["user"] = oauth.keycloak.parse_id_token(token, nonce=token.get("nonce"))
+    return redirect("/")
+
+# Logout
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop("user", None)
+    logout_url = f"{os.getenv('KEYCLOAK_LOGOUT_URL')}?post_logout_redirect_uri={url_for('index', _external=True)}&client_id={os.getenv('KEYCLOAK_CLIENT_ID')}"
+    return redirect(logout_url)
 
 @app.route("/add")
 def cee():

@@ -6,3 +6,6 @@ rdflib
 SPARQLWrapper
 pytz
 tzlocal
+
+Authlib
+python-dotenv
