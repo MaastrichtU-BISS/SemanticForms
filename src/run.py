@@ -78,7 +78,7 @@ def index():
         return render_template("index.html", instances=instances)
 
 # Login page
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     redirect_uri = url_for("auth", _external=True)
     return oauth.keycloak.authorize_redirect(redirect_uri)
@@ -99,10 +99,16 @@ def logout():
 
 @app.route("/add")
 def cee():
+    # Test authentication or send HTTP 401 error
+    if not session.get("user"):
+        return redirect("/login")
     return render_template("cee.html")
 
 @app.route("/instance/<identifier>/edit")
 def edit_cee(identifier: str):
+    # Test authentication or to login page
+    if not session.get("user"):
+        return redirect("/login")
     
     if identifier:
         fileNameJson = persistance.get_instance(identifier)['filename']
@@ -125,12 +131,20 @@ def edit_cee(identifier: str):
 
 @app.route("/delete")
 def delete_instance():
+    # Test authentication or to login page
+    if not session.get("user"):
+        return redirect("/login")
+    
     identifier = request.args.get("uri")
     persistance.delete_instance(identifier)
     return redirect("/")
 
 @app.route("/instance/<identifier>")
 def showInstance(identifier: str):
+    # Test authentication or to login page
+    if not session.get("user"):
+        return redirect("/login")
+    
     filename = persistance.get_instance(identifier)['filename']
     with open(filename, "r") as f:
         jsonData = json.load(f)
@@ -210,6 +224,8 @@ def store():
     """
     Function to store the actual data generated using the cedar embeddable editor.
     """
+    # TODO: Add authentication, as cedar is unaware of the user
+
     template = get_template()
 
     data_to_store = request.get_json()
