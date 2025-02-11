@@ -71,6 +71,12 @@ def render_template(
 @app.route("/")
 def index():
     instances = persistance.get_instances()
+
+    if "application/json" in request.accept_mimetypes.best:
+        return Response(json.dumps(instances), mimetype='application/json')
+    
+    if "application/ld+json" in request.accept_mimetypes.best:
+        return Response(json.dumps(instances), mimetype='application/ld+json')
     
     if config["template"]["storage"]=="cedar":
         return render_template("index.html", instances=instances, template_id=config["template"]["templateId"])
@@ -141,9 +147,9 @@ def delete_instance():
 
 @app.route("/instance/<identifier>")
 def showInstance(identifier: str):
-    # Test authentication or to login page
-    if not session.get("user"):
-        return redirect("/login")
+    # # Test authentication or to login page
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     filename = persistance.get_instance(identifier)['filename']
     with open(filename, "r") as f:
