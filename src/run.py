@@ -72,11 +72,8 @@ def render_template(
 def index():
     instances = persistance.get_instances()
 
-    if "application/json" in request.accept_mimetypes.best:
+    if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
         return Response(json.dumps(instances), mimetype='application/json')
-    
-    if "application/ld+json" in request.accept_mimetypes.best:
-        return Response(json.dumps(instances), mimetype='application/ld+json')
     
     if config["template"]["storage"]=="cedar":
         return render_template("index.html", instances=instances, template_id=config["template"]["templateId"])
