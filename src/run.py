@@ -102,7 +102,8 @@ def auth():
 @app.route("/logout", methods=["POST"])
 def logout():
     session.pop("user", None)
-    logout_url = f"{keycloak_logout_url}?post_logout_redirect_uri={url_for('index', _external=True, _scheme=os.getenv("APP_SCHEME", 'http'))}&client_id={os.getenv('KEYCLOAK_CLIENT_ID')}"
+    redirect_url = url_for('index', _external=True, _scheme=os.getenv("APP_SCHEME", 'http'))
+    logout_url = f"{keycloak_logout_url}?post_logout_redirect_uri={redirect_url}&client_id={os.getenv('KEYCLOAK_CLIENT_ID')}"
     return redirect(logout_url)
 
 @app.route("/add")
