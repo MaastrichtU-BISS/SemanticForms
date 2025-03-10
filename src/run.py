@@ -30,6 +30,7 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
 keycloak_realm = os.getenv("KEYCLOAK_REALM")
 keycloak_base_url = os.getenv("KEYCLOAK_BASE_URL")
+keycloak_logout_url = f"{keycloak_base_url}/realms/{keycloak_realm}/protocol/openid-connect/logout"
 
 oauth = OAuth(app)
 oauth.register(
@@ -38,7 +39,6 @@ oauth.register(
     client_secret=os.getenv("KEYCLOAK_CLIENT_SECRET"),
     authorize_url=f"{keycloak_base_url}/realms/{keycloak_realm}/protocol/openid-connect/auth",
     server_metadata_url=f"{keycloak_base_url}/realms/{keycloak_realm}/.well-known/openid-configuration",
-    logout_url=f"{keycloak_base_url}/realms/{keycloak_realm}/protocol/openid-connect/logout",
     client_kwargs={"scope": "openid profile email"},
 )
 
@@ -88,9 +88,7 @@ def index():
 # Login page
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    redirect_uri = url_for("auth", _external=True)
-    if os.getenv("KEYCLOAK_REDIRECT_URI") is not None: 
-        redirect_uri = os.getenv("KEYCLOAK_REDIRECT_URI")
+    redirect_uri = url_for("auth", _external=True, , _scheme=os.getenv("APP_SCHEME", 'http'))
     return oauth.keycloak.authorize_redirect(redirect_uri)
 
 # Auth callback
@@ -104,7 +102,7 @@ def auth():
 @app.route("/logout", methods=["POST"])
 def logout():
     session.pop("user", None)
-    logout_url = f"{os.getenv('KEYCLOAK_LOGOUT_URL')}?post_logout_redirect_uri={url_for('index', _external=True)}&client_id={os.getenv('KEYCLOAK_CLIENT_ID')}"
+    logout_url = f"{keycloak_logout_url}?post_logout_redirect_uri={url_for('index', _external=True, _scheme=os.getenv("APP_SCHEME", 'http'))}&client_id={os.getenv('KEYCLOAK_CLIENT_ID')}"
     return redirect(logout_url)
 
 @app.route("/add")
