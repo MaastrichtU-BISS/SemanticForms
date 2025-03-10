@@ -89,7 +89,7 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     redirect_uri = url_for("auth", _external=True)
-    if os.getenv("KEYCLOAK_REDIRECT_URI") is None: 
+    if os.getenv("KEYCLOAK_REDIRECT_URI") is not None: 
         redirect_uri = os.getenv("KEYCLOAK_REDIRECT_URI")
     return oauth.keycloak.authorize_redirect(redirect_uri)
 
