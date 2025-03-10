@@ -88,7 +88,7 @@ def index():
 # Login page
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    redirect_uri = url_for("auth", _external=True, , _scheme=os.getenv("APP_SCHEME", 'http'))
+    redirect_uri = url_for("auth", _external=True, _scheme=os.getenv("APP_SCHEME", 'http'))
     return oauth.keycloak.authorize_redirect(redirect_uri)
 
 # Auth callback
