@@ -28,12 +28,17 @@ local_tz = get_localzone()
 load_dotenv()
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
+keycloak_realm = os.getenv("KEYCLOAK_REALM")
+keycloak_base_url = os.getenv("KEYCLOAK_BASE_URL")
+
 oauth = OAuth(app)
 oauth.register(
     name="keycloak",
     client_id=os.getenv("KEYCLOAK_CLIENT_ID"),
     client_secret=os.getenv("KEYCLOAK_CLIENT_SECRET"),
-    server_metadata_url=os.getenv("KEYCLOAK_SERVER_METADATA_URL"),
+    authorize_url=f"{keycloak_base_url}/realms/{keycloak_realm}/protocol/openid-connect/auth",
+    server_metadata_url=f"{keycloak_base_url}/realms/{keycloak_realm}/.well-known/openid-configuration",
+    logout_url=f"{keycloak_base_url}/realms/{keycloak_realm}/protocol/openid-connect/logout",
     client_kwargs={"scope": "openid profile email"},
 )
 
