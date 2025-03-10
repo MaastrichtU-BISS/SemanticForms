@@ -94,6 +94,32 @@
           }
         }
 
+        // inspect whether the list contains a key "rdfs:label"
+        if (typeof instance[key][0] == 'object' && "rdfs:label" in instance[key][0]) {
+          var tr = document.createElement('tr');
+          var td1 = document.createElement('td');
+          var td2 = document.createElement('td');
+          td1.textContent = key + ":";
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          table.appendChild(tr);
+          var ul = document.createElement('ul');
+          for (var i = 0; i < instance[key].length; i++) {
+            var li = document.createElement('li');
+            // check if there is an @id label, if so, make it a HTML link
+            if ("@id" in instance[key][i]) {
+              var a = document.createElement('a');
+              a.href = instance[key][i]["@id"];
+              a.textContent = instance[key][i]["rdfs:label"];
+              li.appendChild(a);
+            } else {
+              li.textContent = instance[key][i]["rdfs:label"];
+            }
+            ul.appendChild(li);
+          }
+          td2.appendChild(ul);
+        }
+
         // inspect whether the @value objects in the list have an actual value, otherwise ignore
         if (instance[key].length > 0 && instance[key][0]["@value"] == undefined) {
           continue;
