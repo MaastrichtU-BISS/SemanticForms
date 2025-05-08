@@ -31,6 +31,20 @@ class FilePersistance(Persistance):
                 if myFile.endswith(".jsonld"):
                     action(filename=os.path.join(root, myFile))
     
+    def __find_title_recursively(self, metadata, uri_tree):
+        predicate = uri_tree.pop(0)
+        for key in metadata["@context"]:
+            value = metadata["@context"][key]
+            if value == predicate:
+                titleTag = key
+                if len(uri_tree) > 0:
+                    return self.__find_title_recursively(metadata[titleTag], uri_tree)
+                else:
+                    return metadata[titleTag]["@value"]
+        return "No title found"
+                    
+
+    
     def __parse_jsonld_file(self, filename: str):
         """
         Read JSON-LD object from filename, and parse the title and identifier of the object.
@@ -40,15 +54,10 @@ class FilePersistance(Persistance):
         with open(filename, 'r') as f:
             metadata = json.load(f)
             id = metadata["@id"].replace(self.__base_url + "/", "")
-            titleTag = None
-            print(metadata["@context"])
-            for key in metadata["@context"]:
-                value = metadata["@context"][key]
-                if value == self.__title_uri:
-                    titleTag = key
+            title_found = self.__find_title_recursively(metadata, self.__title_uri.split("|"))
             
             self.__cached_items[id] = {
-                "title": metadata[titleTag]['@value'],
+                "title": title_found,
                 "filename": filename,
                 "time": metadata['pav:createdOn']
             }
