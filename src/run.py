@@ -17,7 +17,7 @@ from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from tzlocal import get_localzone
 from persistance import FilePersistance
-from terminology_service import TerminologyService
+from terminology_service import TerminologyService, MemoryTerminologyService, SPARQLTerminologyService
 
 app = Flask(__name__)
 CORS(app)
@@ -65,9 +65,12 @@ persistance = FilePersistance(folder_location=config['server']['storageFolder'],
                               base_url=config['template']['instance_base_url'] + "/instance")
 
 # load terminology service
-terminology_service = TerminologyService([])
+terminology_service: TerminologyService = MemoryTerminologyService([])
 if "ontology_path" in config:
-    terminology_service = TerminologyService(config["ontology_path"])
+    terminology_service = MemoryTerminologyService(config["ontology_path"])
+if terminology_service is not None:
+    terminology_service = SPARQLTerminologyService(config["terminology_server"])
+
 
 def render_template(
     template_name_or_list: str | Template | list[str | Template],
@@ -201,11 +204,12 @@ def terminology():
     """
     Perform a terminology lookup for the given term
     """
+    limit = 10  # Default limit for results
     response = {
         "page": 1,
         "pageCount": 1,
         "pageSize": 1,
-        "totalCount": 1,
+        "totalCount": 0,
         "prevPage": None,
         "nextPage": None,
         "collection": []
@@ -213,7 +217,7 @@ def terminology():
     # check if method is post, print the request and body
     if request.method == "POST":
         query_input = request.get_json()
-        # print(json.dumps(query_input, indent=4))
+        print(json.dumps(query_input, indent=4))
         ontologies = query_input["parameterObject"]["valueConstraints"]["ontologies"]
         branches = query_input["parameterObject"]["valueConstraints"]["branches"]
         classes = query_input["parameterObject"]["valueConstraints"]["classes"]
@@ -221,10 +225,15 @@ def terminology():
         
         search_text = query_input["parameterObject"]["inputText"]
 
+        # limit = query_input["pageSize"]
+
+        if search_text is None or search_text == "":
+            return Response(json.dumps(response), mimetype='application/json')
+
         if len(branches) > 0:
             for branch in branches:
                 uri = branch["uri"]
-                results = terminology_service.search_class_on_label_and_subclass(uri, search_text)
+                results = terminology_service.search_class_on_label_and_subclass(uri, search_text)[:limit]
                 for result in results:
                     response["collection"].append({
                         "id": result["class"],
@@ -232,30 +241,29 @@ def terminology():
                         "@type": "http://data.bioontology.org/metadata/OntologyClass",
                         "type": "OntologyClass",
                         "prefLabel": result["label"],
-                        # "notation": None,
-                        # "definition": None,
-                        # "source": None,
-                        # "matchType": "prefLabel",
-                        # "matchedSynonyms": []
+                        "notation": None,
+                        "definition": None,
+                        "source": result["graph"],
+                        "matchType": "prefLabel",
+                        "matchedSynonyms": [result["label"]]
                     })
 
         if len(ontologies) > 0:
-            print("ontology search")
-            for ontology in ontologies:
-                results = terminology_service.search_class_on_label(search_text)
-                for result in results:
-                    response["collection"].append({
-                        "id": result["class"],
-                        "@id": result["class"],
-                        "@type": "http://data.bioontology.org/metadata/OntologyClass",
-                        "type": "OntologyClass",
-                        "prefLabel": result["label"],
-                        # "notation": None,
-                        # "definition": None,
-                        # "source": None,
-                        # "matchType": "prefLabel",
-                        # "matchedSynonyms": []
-                    })
+            # for ontology in ontologies:
+            results = terminology_service.search_class_on_label(search_text)[:limit]
+            for result in results:
+                response["collection"].append({
+                    "id": result["class"],
+                    "@id": result["class"],
+                    "@type": "http://data.bioontology.org/metadata/OntologyClass",
+                    "type": "OntologyClass",
+                    "prefLabel": result["label"],
+                    "notation": None,
+                    "definition": None,
+                    "source": result["graph"],
+                    "matchType": "prefLabel",
+                    "matchedSynonyms": []
+                })
 
     response["totalCount"] = len(response["collection"])
     return Response(json.dumps(response), mimetype='application/json')

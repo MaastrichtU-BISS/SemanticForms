@@ -3,8 +3,9 @@ server:
 #   server_url: "https://graphdb.fairmodels.org"
 #   repository_name: "semantic_forms"
 #   update_endpoint_suffix: "/statements"
-ontology_path:
-  - ../ROO.owl
+# ontology_path:
+#   - ../ROO.owl
+terminology_server: http://dobby.home:8080/rdf4j-server/repositories/vocab_native
 template:
   source: cedar
   templateId: bf75c936-ba23-468a-80dd-4fe1be6714ed
