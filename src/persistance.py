@@ -34,8 +34,9 @@ class FilePersistance(Persistance):
     def __find_title_recursively(self, metadata, uri_tree):
         """
         Find title by searching through JSON-LD structure.
-        If the original recursive search fails, try to find the title field directly.
+        Enhanced to handle complex nested structures like CEDAR templates.
         """
+        # First, try the original recursive search approach
         try:
             predicate = uri_tree.copy().pop(0)  # Don't modify the original list
             for key in metadata.get("@context", {}):
@@ -52,22 +53,47 @@ class FilePersistance(Persistance):
         except (KeyError, IndexError, TypeError):
             pass
         
-        # Fallback: try to find 'title' directly in the data
-        if "title" in metadata:
-            if isinstance(metadata["title"], dict) and "@value" in metadata["title"]:
-                return metadata["title"]["@value"]
-            elif isinstance(metadata["title"], str):
-                return metadata["title"]
+        # Enhanced search: Look for common title patterns in CEDAR JSON-LD
+        title_patterns = [
+            # Direct patterns
+            ["title"],
+            ["name"], 
+            ["label"],
+            ["rdfs:label"],
+            ["schema:name"],
+            ["dct:title"],
+            # CEDAR nested patterns - look for "General Model Information" -> "Title"
+            ["General Model Information", "Title"],
+            # Other nested patterns
+            ["metadata", "title"],
+            ["metadata", "name"],
+        ]
         
-        # Another fallback: look for common title fields
-        for title_field in ["title", "name", "label", "rdfs:label", "schema:name", "dct:title"]:
-            if title_field in metadata:
-                if isinstance(metadata[title_field], dict) and "@value" in metadata[title_field]:
-                    return metadata[title_field]["@value"]
-                elif isinstance(metadata[title_field], str):
-                    return metadata[title_field]
+        for pattern in title_patterns:
+            title = self.__find_title_by_path(metadata, pattern)
+            if title and title != "No title found":
+                return title
                     
         return "No title found"
+    
+    def __find_title_by_path(self, data, path):
+        """
+        Navigate through nested structure following the given path to find a title.
+        """
+        current = data
+        for step in path:
+            if isinstance(current, dict) and step in current:
+                current = current[step]
+            else:
+                return None
+        
+        # Extract value if it's in @value format
+        if isinstance(current, dict) and "@value" in current:
+            return current["@value"] if current["@value"] is not None else None
+        elif isinstance(current, str):
+            return current
+        
+        return None
 
     def __extract_searchable_content(self, metadata):
         """
