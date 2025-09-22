@@ -38,7 +38,7 @@ class FilePersistance(Persistance):
         """
         # First, try the original recursive search approach
         try:
-            predicate = uri_tree.copy().pop(0)  # Don't modify the original list
+            predicate = uri_tree[0]  # Don't modify the original list
             for key in metadata.get("@context", {}):
                 value = metadata["@context"][key]
                 if value == predicate:
