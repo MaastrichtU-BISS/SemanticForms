@@ -8,4 +8,4 @@ template:
   templateId: 2781be7e-b18f-45d0-9c89-014c01f2ddf7
   storage: local
   instance_base_url: http://localhost
-  title_predicate: http://purl.org/dc/terms/title
+  title_predicate: title

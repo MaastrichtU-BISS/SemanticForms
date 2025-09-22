@@ -32,16 +32,93 @@ class FilePersistance(Persistance):
                     action(filename=os.path.join(root, myFile))
     
     def __find_title_recursively(self, metadata, uri_tree):
-        predicate = uri_tree.pop(0)
-        for key in metadata["@context"]:
-            value = metadata["@context"][key]
-            if value == predicate:
-                titleTag = key
-                if len(uri_tree) > 0:
-                    return self.__find_title_recursively(metadata[titleTag], uri_tree)
-                else:
-                    return metadata[titleTag]["@value"]
+        """
+        Find title by searching through JSON-LD structure.
+        Enhanced to handle complex nested structures like CEDAR templates.
+        """
+        # First, try the original recursive search approach
+        try:
+            predicate = uri_tree[0]  # Don't modify the original list
+            for key in metadata.get("@context", {}):
+                value = metadata["@context"][key]
+                if value == predicate:
+                    titleTag = key
+                    if len(uri_tree) > 1:
+                        return self.__find_title_recursively(metadata[titleTag], uri_tree[1:])
+                    else:
+                        if titleTag in metadata and isinstance(metadata[titleTag], dict) and "@value" in metadata[titleTag]:
+                            return metadata[titleTag]["@value"]
+                        elif titleTag in metadata:
+                            return str(metadata[titleTag])
+        except (KeyError, IndexError, TypeError):
+            pass
+        
+        # Enhanced search: Look for common title patterns in CEDAR JSON-LD
+        title_patterns = [
+            # Direct patterns
+            ["title"],
+            ["name"], 
+            ["label"],
+            ["rdfs:label"],
+            ["schema:name"],
+            ["dct:title"],
+            # CEDAR nested patterns - look for "General Model Information" -> "Title"
+            ["General Model Information", "Title"],
+            # Other nested patterns
+            ["metadata", "title"],
+            ["metadata", "name"],
+        ]
+        
+        for pattern in title_patterns:
+            title = self.__find_title_by_path(metadata, pattern)
+            if title and title != "No title found":
+                return title
+                    
         return "No title found"
+    
+    def __find_title_by_path(self, data, path):
+        """
+        Navigate through nested structure following the given path to find a title.
+        """
+        current = data
+        for step in path:
+            if isinstance(current, dict) and step in current:
+                current = current[step]
+            else:
+                return None
+        
+        # Extract value if it's in @value format
+        if isinstance(current, dict) and "@value" in current:
+            return current["@value"] if current["@value"] is not None else None
+        elif isinstance(current, str):
+            return current
+        
+        return None
+
+    def __extract_searchable_content(self, metadata):
+        """
+        Extract all searchable text content from JSON-LD metadata.
+        This includes values from fields that contain @value properties.
+        """
+        searchable_text = []
+        
+        def extract_values(obj):
+            if isinstance(obj, dict):
+                if "@value" in obj:
+                    # Extract the actual value from @value fields
+                    searchable_text.append(str(obj["@value"]))
+                else:
+                    # Recursively process nested objects
+                    for key, value in obj.items():
+                        # Skip metadata fields like @id, @context, pav:createdOn, etc.
+                        if not key.startswith("@") and not key.startswith("pav:") and not key.startswith("schema:isBasedOn"):
+                            extract_values(value)
+            elif isinstance(obj, list):
+                for item in obj:
+                    extract_values(item)
+        
+        extract_values(metadata)
+        return " ".join(searchable_text).lower()  # Convert to lowercase for case-insensitive search
                     
 
     
@@ -56,10 +133,14 @@ class FilePersistance(Persistance):
             id = metadata["@id"].replace(self.__base_url + "/", "")
             title_found = self.__find_title_recursively(metadata, self.__title_uri.split("|"))
             
+            # Extract searchable content from all fields
+            searchable_content = self.__extract_searchable_content(metadata)
+            
             self.__cached_items[id] = {
                 "title": title_found,
                 "filename": filename,
-                "time": metadata['pav:createdOn']
+                "time": metadata['pav:createdOn'],
+                "searchable_content": searchable_content
             }
     
     def instance_exists(self, id: str) -> bool:
@@ -86,14 +167,34 @@ class FilePersistance(Persistance):
         else:
             raise Exception(f"Could not find instance with id {id}")
 
-    def get_instances(self):
+    def get_instances(self, search_query=None):
         """
         List all instances in the persistance folder.
+        If search_query is provided, filter instances by title and content.
 
+        input:
+            - search_query: optional search string to filter instances
         output:
-            - a dictionary of instances
+            - a dictionary of instances (filtered if search_query provided)
         """
-        return self.__cached_items.copy()
+        if search_query is None or search_query.strip() == "":
+            return self.__cached_items.copy()
+        
+        # Convert search query to lowercase for case-insensitive search
+        search_lower = search_query.lower().strip()
+        filtered_items = {}
+        
+        for item_id, item_data in self.__cached_items.items():
+            # Search in title
+            title_match = search_lower in item_data.get("title", "").lower()
+            
+            # Search in searchable content
+            content_match = search_lower in item_data.get("searchable_content", "")
+            
+            if title_match or content_match:
+                filtered_items[item_id] = item_data
+        
+        return filtered_items
     
     def delete_instance(self, id: str):
         """
