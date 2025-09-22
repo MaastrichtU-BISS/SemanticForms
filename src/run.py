@@ -75,15 +75,17 @@ def render_template(
 
 @app.route("/")
 def index():
-    instances = persistance.get_instances()
+    # Get search query from URL parameters
+    search_query = request.args.get('search', '')
+    instances = persistance.get_instances(search_query if search_query.strip() else None)
 
     if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
         return Response(json.dumps(instances), mimetype='application/json')
     
     if config["template"]["storage"]=="cedar":
-        return render_template("index.html", instances=instances, template_id=config["template"]["templateId"])
+        return render_template("index.html", instances=instances, template_id=config["template"]["templateId"], search_query=search_query)
     else:
-        return render_template("index.html", instances=instances)
+        return render_template("index.html", instances=instances, search_query=search_query)
 
 # Login page
 @app.route("/login", methods=["GET", "POST"])
