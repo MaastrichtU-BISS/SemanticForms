@@ -77,15 +77,60 @@ def render_template(
 def index():
     # Get search query from URL parameters
     search_query = request.args.get('search', '')
-    instances = persistance.get_instances(search_query if search_query.strip() else None)
+    
+    # Get filter parameters
+    filters = {}
+    table_columns = config.get("tableColumns", [])
+    
+    for column in table_columns:
+        filter_value = request.args.get(f"filter_{column['property']}", '')
+        if filter_value:
+            filters[column['property']] = filter_value
+    
+    # Get instances with properties extracted based on table columns
+    instances = persistance.get_instances_with_properties(
+        search_query if search_query.strip() else None, 
+        table_columns
+    )
+    
+    # Apply property filters
+    if filters:
+        filtered_instances = {}
+        for instance_id, instance_data in instances.items():
+            include_instance = True
+            for prop, filter_value in filters.items():
+                instance_value = instance_data.get('properties', {}).get(prop, '')
+                if filter_value.lower() not in str(instance_value).lower():
+                    include_instance = False
+                    break
+            if include_instance:
+                filtered_instances[instance_id] = instance_data
+        instances = filtered_instances
+    
+    # Get unique values for dropdowns
+    filter_options = {}
+    for column in table_columns:
+        unique_values = persistance.get_unique_property_values(column['property'], table_columns)
+        filter_options[column['property']] = unique_values
 
     if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
         return Response(json.dumps(instances), mimetype='application/json')
     
     if config["template"]["storage"]=="cedar":
-        return render_template("index.html", instances=instances, template_id=config["template"]["templateId"], search_query=search_query)
+        return render_template("index.html", 
+                             instances=instances, 
+                             template_id=config["template"]["templateId"], 
+                             search_query=search_query,
+                             table_columns=table_columns,
+                             filters=filters,
+                             filter_options=filter_options)
     else:
-        return render_template("index.html", instances=instances, search_query=search_query)
+        return render_template("index.html", 
+                             instances=instances, 
+                             search_query=search_query,
+                             table_columns=table_columns,
+                             filters=filters,
+                             filter_options=filter_options)
 
 # Login page
 @app.route("/login", methods=["GET", "POST"])

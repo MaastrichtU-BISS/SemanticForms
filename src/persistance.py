@@ -136,11 +136,13 @@ class FilePersistance(Persistance):
             # Extract searchable content from all fields
             searchable_content = self.__extract_searchable_content(metadata)
             
+            # Store complete metadata for property extraction
             self.__cached_items[id] = {
                 "title": title_found,
                 "filename": filename,
                 "time": metadata['pav:createdOn'],
-                "searchable_content": searchable_content
+                "searchable_content": searchable_content,
+                "metadata": metadata
             }
     
     def instance_exists(self, id: str) -> bool:
@@ -167,6 +169,96 @@ class FilePersistance(Persistance):
         else:
             raise Exception(f"Could not find instance with id {id}")
 
+    def get_instances_with_properties(self, search_query=None, table_columns=None):
+        """
+        List all instances with extracted properties for table columns.
+        If search_query is provided, filter instances by title and content.
+        If table_columns is provided, extract those properties from each instance.
+
+        input:
+            - search_query: optional search string to filter instances
+            - table_columns: optional list of column configurations
+        output:
+            - a dictionary of instances with extracted properties
+        """
+        base_instances = self.get_instances(search_query)
+        
+        if not table_columns:
+            return base_instances
+        
+        enhanced_instances = {}
+        for instance_id, instance_data in base_instances.items():
+            enhanced_data = instance_data.copy()
+            enhanced_data['properties'] = {}
+            
+            # Extract each configured property
+            for column in table_columns:
+                property_name = column['property']
+                property_value = self.__extract_property_value(instance_data['metadata'], property_name)
+                enhanced_data['properties'][property_name] = property_value
+            
+            enhanced_instances[instance_id] = enhanced_data
+        
+        return enhanced_instances
+
+    def __extract_property_value(self, metadata, property_name):
+        """
+        Extract a specific property value from JSON-LD metadata.
+        
+        input:
+            - metadata: the JSON-LD metadata object
+            - property_name: the property to extract
+        output:
+            - the property value as a string, or empty string if not found
+        """
+        # First try direct property access
+        if property_name in metadata:
+            value = metadata[property_name]
+            if isinstance(value, dict) and "@value" in value:
+                return value["@value"]
+            elif isinstance(value, str):
+                return value
+        
+        # Try to find through context mapping
+        context = metadata.get("@context", {})
+        for key, uri in context.items():
+            if key == property_name and key in metadata:
+                value = metadata[key]
+                if isinstance(value, dict) and "@value" in value:
+                    return value["@value"]
+                elif isinstance(value, str):
+                    return value
+        
+        # Special cases for common properties
+        if property_name == "title":
+            return self.__find_title_recursively(metadata, self.__title_uri.split("|"))
+        elif property_name == "creation_date" or property_name == "date_created":
+            return metadata.get("pav:createdOn", "")
+        elif property_name == "updated_date" or property_name == "date_updated":
+            return metadata.get("pav:lastUpdatedOn", "")
+        
+        return ""
+
+    def get_unique_property_values(self, property_name, table_columns=None):
+        """
+        Get all unique values for a specific property across all instances.
+        Used for generating dropdown filter options.
+        
+        input:
+            - property_name: the property to get unique values for
+            - table_columns: optional table columns configuration
+        output:
+            - a list of unique property values
+        """
+        unique_values = set()
+        
+        for instance_id, instance_data in self.__cached_items.items():
+            value = self.__extract_property_value(instance_data['metadata'], property_name)
+            if value and value.strip():
+                unique_values.add(value)
+        
+        return sorted(list(unique_values))
+    
     def get_instances(self, search_query=None):
         """
         List all instances in the persistance folder.

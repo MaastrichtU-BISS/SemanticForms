@@ -35,9 +35,64 @@
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- Hidden inputs to preserve existing filters -->
+            {% if table_columns %}
+                {% for column in table_columns %}
+                    {% if filters.get(column.property) %}
+                        <input type="hidden" name="filter_{{ column.property }}" value="{{ filters.get(column.property) }}">
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
         </form>
     </div>
 </div>
+
+<!-- Column Filters -->
+{% if table_columns %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Filter by Columns</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="/" id="filterForm" class="row">
+                    <!-- Preserve search query -->
+                    {% if search_query %}
+                        <input type="hidden" name="search" value="{{ search_query }}">
+                    {% endif %}
+                    
+                    {% for column in table_columns %}
+                        <div class="col-md-3 mb-2">
+                            <label for="filter_{{ column.property }}" class="form-label">{{ column.label }}</label>
+                            {% set unique_values = filter_options.get(column.property, []) %}
+                            {% if unique_values|length > 0 and unique_values|length <= 10 %}
+                                <!-- Use dropdown for limited unique values -->
+                                <select class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}">
+                                    <option value="">All {{ column.label }}s</option>
+                                    {% for value in unique_values %}
+                                        <option value="{{ value }}" {% if filters.get(column.property) == value %}selected{% endif %}>{{ value }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <!-- Use text input for many unique values or no values -->
+                                <input type="text" class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
+                                       placeholder="Filter by {{ column.label|lower }}..." value="{{ filters.get(column.property, '') }}">
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="col-md-12 mt-2">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="/" class="btn btn-secondary">Clear All Filters</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {% if search_query %}
 <div class="row mb-2">
@@ -51,11 +106,18 @@
 {% endif %}
 
 <div class="row">
-<table class="table table-striped table-responsive table-sm">
+<table class="table table-striped table-responsive table-sm" id="dataTable">
     <thead>
         <tr>
-            <th scope="col">Title / ID</th>
-            <th scope="col">Creation Date</th>
+            {% if table_columns %}
+                {% for column in table_columns %}
+                    <th scope="col">{{ column.label }}</th>
+                {% endfor %}
+            {% else %}
+                <!-- Fallback to original columns if no configuration -->
+                <th scope="col">Title / ID</th>
+                <th scope="col">Creation Date</th>
+            {% endif %}
             {% if user %}
                 <th scope="col"></th>
             {% endif %}
@@ -64,8 +126,21 @@
     <tbody>
         {%for key in instances %}
         <tr>
-            <td><a href="./instance/{{ key }}">{{instances[key]["title"]}}</a></td>
-            <td><time datetime="{{instances[key]['time']}}"/></td>
+            {% if table_columns %}
+                {% for column in table_columns %}
+                    <td>
+                        {% if column.property == 'title' %}
+                            <a href="./instance/{{ key }}">{{ instances[key].properties.get(column.property, instances[key].get('title', '')) }}</a>
+                        {% else %}
+                            {{ instances[key].properties.get(column.property, '') }}
+                        {% endif %}
+                    </td>
+                {% endfor %}
+            {% else %}
+                <!-- Fallback to original columns if no configuration -->
+                <td><a href="./instance/{{ key }}">{{instances[key]["title"]}}</a></td>
+                <td><time datetime="{{instances[key]['time']}}"/></td>
+            {% endif %}
             {% if user %}
                 {% if template_id is defined %}
                 <td><a href="https://cedar.metadatacenter.org/instances/edit/{{ key }}" role="button" class="btn btn-secondary float-right btn-sm">Edit</a></td>
@@ -76,7 +151,7 @@
         </tr>
         {% else %}
         <tr>
-            <td colspan="{% if user %}3{% else %}2{% endif %}" class="text-center text-muted">
+            <td colspan="{% if user %}{{ (table_columns|length if table_columns else 2) + 1 }}{% else %}{{ table_columns|length if table_columns else 2 }}{% endif %}" class="text-center text-muted">
                 {% if search_query %}
                     No form instances found matching your search query.
                 {% else %}
@@ -88,4 +163,44 @@
     </tbody>
 </table>
 </div>
+
+<!-- Real-time filtering JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable real-time filtering for text inputs
+    const textInputs = document.querySelectorAll('.filter-input[type="text"]');
+    const selectInputs = document.querySelectorAll('select.filter-input');
+    
+    // Debounce function for text input
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Real-time filtering function
+    const performRealTimeFilter = debounce(function() {
+        const form = document.getElementById('filterForm');
+        if (form) {
+            form.submit();
+        }
+    }, 500);
+    
+    // Add event listeners for real-time filtering
+    textInputs.forEach(input => {
+        input.addEventListener('input', performRealTimeFilter);
+    });
+    
+    selectInputs.forEach(select => {
+        select.addEventListener('change', performRealTimeFilter);
+    });
+});
+</script>
+
 {% endblock %}

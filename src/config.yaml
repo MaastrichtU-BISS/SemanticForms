@@ -9,3 +9,12 @@ template:
   storage: local
   instance_base_url: http://localhost
   title_predicate: title
+tableColumns:
+  - property: "title"
+    label: "Title"
+  - property: "status"
+    label: "Status"
+  - property: "date_created"
+    label: "Created On"
+  - property: "author"
+    label: "Author"
