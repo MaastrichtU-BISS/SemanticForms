@@ -62,6 +62,16 @@ class FilePersistance(Persistance):
                 "time": metadata['pav:createdOn']
             }
     
+    def instance_exists(self, id: str) -> bool:
+        """
+        Check if an instance exists in the persistance folder.
+        input:
+            - id: the identifier of the instance to check
+            output:
+                - True if the instance exists, False otherwise
+        """
+        return id in self.__cached_items
+    
     def get_instance(self, id: str):
         """
         Get an instance from the persistance folder.

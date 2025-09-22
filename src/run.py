@@ -138,13 +138,15 @@ def edit_cee(identifier: str):
     
     return redirect("/", error="Could not load data")  
 
-@app.route("/delete")
-def delete_instance():
+@app.route("/instance/<identifier>/delete")
+def delete_instance(identifier: str):
     # Test authentication or to login page
     if not session.get("user"):
         return redirect("/login")
     
-    identifier = request.args.get("uri")
+    if not persistance.instance_exists(identifier):
+        return redirect("/", error=f"Could not find instance with id {identifier}")
+    
     persistance.delete_instance(identifier)
     return redirect("/")
 
@@ -177,9 +179,9 @@ def showInstance(identifier: str):
         g.parse(data=json.dumps(jsonData), format='json-ld')
         rdfxml = g.serialize(format='xml')
         return Response(rdfxml, mimetype='application/rdf+xml')
-    
-    return render_template("instance.html", jsonData=jsonData)
-    
+
+    return render_template("instance.html", jsonData=jsonData, identifier=identifier)
+
 
 @app.route("/api/cedar/template.json")
 def template():
