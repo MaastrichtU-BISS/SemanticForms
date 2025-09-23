@@ -204,13 +204,18 @@ class FilePersistance(Persistance):
     def __extract_property_value(self, metadata, property_name):
         """
         Extract a specific property value from JSON-LD metadata.
+        Now supports nested properties using dot notation (e.g., "metadata.project", "details.team.lead").
         
         input:
             - metadata: the JSON-LD metadata object
-            - property_name: the property to extract
+            - property_name: the property to extract (supports dot notation for nested properties)
         output:
             - the property value as a string, or empty string if not found
         """
+        # Handle nested property paths (e.g., "metadata.project", "details.team.lead")
+        if '.' in property_name:
+            return self.__extract_nested_property_value(metadata, property_name)
+        
         # First try direct property access
         if property_name in metadata:
             value = metadata[property_name]
@@ -236,6 +241,48 @@ class FilePersistance(Persistance):
             return metadata.get("pav:createdOn", "")
         elif property_name == "updated_date" or property_name == "date_updated":
             return metadata.get("pav:lastUpdatedOn", "")
+        
+        return ""
+    
+    def __extract_nested_property_value(self, metadata, property_path):
+        """
+        Extract a nested property value using dot notation path.
+        Similar to __find_title_by_path but for any property.
+        
+        input:
+            - metadata: the JSON-LD metadata object
+            - property_path: dot-separated path (e.g., "metadata.project", "details.team.lead")
+        output:
+            - the property value as a string, or empty string if not found
+        """
+        path_parts = property_path.split('.')
+        current = metadata
+        
+        # Navigate through the nested structure
+        for part in path_parts:
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            else:
+                return ""
+        
+        # Extract value based on the final structure
+        if isinstance(current, dict) and "@value" in current:
+            return current["@value"] if current["@value"] is not None else ""
+        elif isinstance(current, str):
+            return current
+        elif isinstance(current, (int, float)):
+            return str(current)
+        elif isinstance(current, dict):
+            # If it's a dict without @value, try to find a meaningful string representation
+            # Look for common value fields
+            for value_key in ["@value", "value", "name", "title", "label"]:
+                if value_key in current:
+                    val = current[value_key]
+                    if isinstance(val, dict) and "@value" in val:
+                        return val["@value"] if val["@value"] is not None else ""
+                    elif isinstance(val, (str, int, float)):
+                        return str(val)
+            return ""
         
         return ""
 
