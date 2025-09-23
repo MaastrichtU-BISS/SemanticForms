@@ -243,6 +243,7 @@ class FilePersistance(Persistance):
         """
         Get all unique values for a specific property across all instances.
         Used for generating dropdown filter options.
+        Enhanced to detect categorical vs non-categorical data.
         
         input:
             - property_name: the property to get unique values for
@@ -258,6 +259,145 @@ class FilePersistance(Persistance):
                 unique_values.add(value)
         
         return sorted(list(unique_values))
+    
+    def analyze_property_characteristics(self, property_name):
+        """
+        Analyze a property to determine its characteristics for better filtering.
+        This helps identify categorical vs continuous data, date fields, etc.
+        
+        input:
+            - property_name: the property to analyze
+        output:
+            - dictionary with property characteristics
+        """
+        values = []
+        unique_values = set()
+        
+        for instance_id, instance_data in self.__cached_items.items():
+            value = self.__extract_property_value(instance_data['metadata'], property_name)
+            if value and value.strip():
+                values.append(value)
+                unique_values.add(value)
+        
+        total_count = len(values)
+        unique_count = len(unique_values)
+        
+        if total_count == 0:
+            return {
+                'type': 'empty',
+                'unique_values': [],
+                'unique_count': 0,
+                'total_count': 0,
+                'is_categorical': False,
+                'is_date': False,
+                'filter_type': 'text'
+            }
+        
+        # Determine if this looks like categorical data
+        uniqueness_ratio = unique_count / total_count if total_count > 0 else 0
+        
+        # Check if values look like dates
+        is_date_field = self._is_date_property(property_name, list(unique_values))
+        
+        # Check if values look categorical (limited unique values relative to total)
+        is_categorical = (
+            unique_count <= 15 and  # Not too many unique values
+            (uniqueness_ratio <= 0.7 or unique_count <= 10) and  # Low uniqueness ratio or very few unique values
+            not is_date_field and  # Not a date field
+            not self._is_numeric_property(list(unique_values))  # Not numeric
+        )
+        
+        # Determine filter type
+        if is_categorical:
+            filter_type = 'dropdown'
+        elif is_date_field:
+            filter_type = 'date'
+        elif self._is_numeric_property(list(unique_values)):
+            filter_type = 'range' if unique_count > 10 else 'dropdown'
+        else:
+            filter_type = 'text'
+        
+        return {
+            'type': 'categorical' if is_categorical else 'continuous',
+            'unique_values': sorted(list(unique_values)),
+            'unique_count': unique_count,
+            'total_count': total_count,
+            'uniqueness_ratio': uniqueness_ratio,
+            'is_categorical': is_categorical,
+            'is_date': is_date_field,
+            'is_numeric': self._is_numeric_property(list(unique_values)),
+            'filter_type': filter_type
+        }
+    
+    def _is_date_property(self, property_name, values):
+        """
+        Check if a property appears to contain date values.
+        """
+        import re
+        
+        # Check property name for date indicators
+        date_indicators = ['date', 'created', 'updated', 'time', 'timestamp']
+        if any(indicator in property_name.lower() for indicator in date_indicators):
+            return True
+        
+        # Check value formats for date patterns
+        date_patterns = [
+            r'\d{4}-\d{2}-\d{2}',  # YYYY-MM-DD
+            r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
+            r'\d{4}/\d{2}/\d{2}',  # YYYY/MM/DD
+            r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}',  # ISO datetime
+        ]
+        
+        if len(values) == 0:
+            return False
+        
+        matching_values = 0
+        for value in values[:5]:  # Check first 5 values
+            if any(re.match(pattern, str(value)) for pattern in date_patterns):
+                matching_values += 1
+        
+        return matching_values / min(len(values), 5) > 0.5
+    
+    def _is_numeric_property(self, values):
+        """
+        Check if a property appears to contain numeric values.
+        """
+        if len(values) == 0:
+            return False
+        
+        numeric_count = 0
+        for value in values:
+            try:
+                float(str(value).replace(',', ''))
+                numeric_count += 1
+            except ValueError:
+                pass
+        
+        return numeric_count / len(values) > 0.8
+    
+    def get_enhanced_filter_options(self, table_columns):
+        """
+        Get enhanced filter options with property analysis.
+        This provides better categorization and filtering options.
+        
+        input:
+            - table_columns: list of column configurations
+        output:
+            - dictionary with enhanced filter information
+        """
+        filter_options = {}
+        
+        for column in table_columns:
+            property_name = column['property']
+            analysis = self.analyze_property_characteristics(property_name)
+            
+            filter_options[property_name] = {
+                'values': analysis['unique_values'],
+                'characteristics': analysis,
+                'filter_type': analysis['filter_type']
+            }
+        
+        return filter_options
     
     def get_instances(self, search_query=None):
         """

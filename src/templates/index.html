@@ -66,19 +66,39 @@
                     {% for column in table_columns %}
                         <div class="col-md-3 mb-2">
                             <label for="filter_{{ column.property }}" class="form-label">{{ column.label }}</label>
-                            {% set unique_values = filter_options.get(column.property, []) %}
-                            {% if unique_values|length > 0 and unique_values|length <= 10 %}
-                                <!-- Use dropdown for limited unique values -->
+                            {% set filter_info = filter_options.get(column.property, {}) %}
+                            {% set unique_values = filter_info.get('values', []) %}
+                            {% set filter_type = filter_info.get('filter_type', 'text') %}
+                            {% set characteristics = filter_info.get('characteristics', {}) %}
+                            
+                            {% if filter_type == 'dropdown' %}
+                                <!-- Use dropdown for categorical data -->
                                 <select class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}">
                                     <option value="">All {{ column.label }}s</option>
                                     {% for value in unique_values %}
                                         <option value="{{ value }}" {% if filters.get(column.property) == value %}selected{% endif %}>{{ value }}</option>
                                     {% endfor %}
                                 </select>
+                                {% if characteristics.get('is_categorical') %}
+                                    <small class="form-text text-muted">📊 Categorical ({{ characteristics.get('unique_count', 0) }} options)</small>
+                                {% endif %}
+                            {% elif filter_type == 'date' %}
+                                <!-- Use date input for date fields -->
+                                <input type="date" class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
+                                       value="{{ filters.get(column.property, '') }}">
+                                <small class="form-text text-muted">📅 Date field</small>
+                            {% elif filter_type == 'range' and characteristics.get('is_numeric') %}
+                                <!-- Use number input for numeric ranges -->
+                                <input type="number" class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
+                                       placeholder="Filter by {{ column.label|lower }}..." value="{{ filters.get(column.property, '') }}">
+                                <small class="form-text text-muted">🔢 Numeric field</small>
                             {% else %}
-                                <!-- Use text input for many unique values or no values -->
+                                <!-- Use text input for text fields or many unique values -->
                                 <input type="text" class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
                                        placeholder="Filter by {{ column.label|lower }}..." value="{{ filters.get(column.property, '') }}">
+                                {% if characteristics.get('unique_count', 0) > 0 %}
+                                    <small class="form-text text-muted">📝 Text field ({{ characteristics.get('unique_count', 0) }} unique values)</small>
+                                {% endif %}
                             {% endif %}
                         </div>
                     {% endfor %}

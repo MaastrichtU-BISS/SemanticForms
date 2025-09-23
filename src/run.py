@@ -107,11 +107,8 @@ def index():
                 filtered_instances[instance_id] = instance_data
         instances = filtered_instances
     
-    # Get unique values for dropdowns
-    filter_options = {}
-    for column in table_columns:
-        unique_values = persistance.get_unique_property_values(column['property'], table_columns)
-        filter_options[column['property']] = unique_values
+    # Get enhanced filter options with property analysis
+    filter_options = persistance.get_enhanced_filter_options(table_columns)
 
     if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
         return Response(json.dumps(instances), mimetype='application/json')
