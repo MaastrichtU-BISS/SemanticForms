@@ -1,15 +1,81 @@
 {% extends "layout.html" %}
+
+{% block sidebar %}
+<!-- Filter Sidebar Content -->
+{% if table_columns %}
+<div class="sidebar-header">
+    <h5 class="mb-0">📊 Filter Data</h5>
+    <small class="text-muted">Filter results by column values</small>
+</div>
+<div class="sidebar-content">
+    <form method="GET" action="/" id="filterForm">
+        <!-- Preserve search query -->
+        {% if search_query %}
+            <input type="hidden" name="search" value="{{ search_query }}">
+        {% endif %}
+        
+        {% for column in table_columns %}
+            <div class="mb-3">
+                <label for="filter_{{ column.property }}" class="form-label font-weight-bold">{{ column.label }}</label>
+                {% set filter_info = filter_options.get(column.property, {}) %}
+                {% set unique_values = filter_info.get('values', []) %}
+                {% set filter_type = filter_info.get('filter_type', 'text') %}
+                {% set characteristics = filter_info.get('characteristics', {}) %}
+                
+                {% if filter_type == 'dropdown' %}
+                    <!-- Use dropdown for categorical data -->
+                    <select class="form-control form-control-sm filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}">
+                        <option value="">All {{ column.label }}s</option>
+                        {% for value in unique_values %}
+                            <option value="{{ value }}" {% if filters.get(column.property) == value %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if characteristics.get('is_categorical') %}
+                        <small class="form-text text-muted">📊 {{ characteristics.get('unique_count', 0) }} options</small>
+                    {% endif %}
+                {% elif filter_type == 'date' %}
+                    <!-- Use date input for date fields -->
+                    <input type="date" class="form-control form-control-sm filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
+                           value="{{ filters.get(column.property, '') }}">
+                    <small class="form-text text-muted">📅 Date field</small>
+                {% elif filter_type == 'range' and characteristics.get('is_numeric') %}
+                    <!-- Use number input for numeric ranges -->
+                    <input type="number" class="form-control form-control-sm filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
+                           placeholder="Filter {{ column.label|lower }}" value="{{ filters.get(column.property, '') }}">
+                    <small class="form-text text-muted">🔢 Numeric field</small>
+                {% else %}
+                    <!-- Use text input for text fields or many unique values -->
+                    <input type="text" class="form-control form-control-sm filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
+                           placeholder="Filter {{ column.label|lower }}" value="{{ filters.get(column.property, '') }}">
+                    {% if characteristics.get('unique_count', 0) > 0 %}
+                        <small class="form-text text-muted">📝 {{ characteristics.get('unique_count', 0) }} unique</small>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %}
+        
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary btn-sm btn-block mb-2">Apply Filters</button>
+            <a href="/" class="btn btn-outline-secondary btn-sm btn-block">Clear All</a>
+        </div>
+    </form>
+</div>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <h1>Filled Templates</h1>
 <div class="row">
-    <p>Please see below for all filled forms. To add a new form, login to the system and press the "add" button to fill in the template.</p>
-    {% if template_id is defined %}
-        <div class="container-fluid p-0"><a href="https://cedar.metadatacenter.org/instances/create/https://repo.metadatacenter.org/templates/{{template_id}}" role="button" class="btn btn-primary float-right mb-1" target="_blank">Add</a></div>
-    {% else %}
-        {% if user %}
-            <div class="container-fluid p-0"><a href="./add" role="button" class="btn btn-primary mb-2">Add</a></div>
+    <div class="col-md-12">
+        <p>Please see below for all filled forms. To add a new form, login to the system and press the "add" button to fill in the template.</p>
+        {% if template_id is defined %}
+            <div class="mb-3"><a href="https://cedar.metadatacenter.org/instances/create/https://repo.metadatacenter.org/templates/{{template_id}}" role="button" class="btn btn-primary float-right" target="_blank">Add</a></div>
+        {% else %}
+            {% if user %}
+                <div class="mb-3"><a href="./add" role="button" class="btn btn-primary">Add</a></div>
+            {% endif %}
         {% endif %}
-    {% endif %}
+    </div>
 </div>
 
 <!-- Search functionality -->
@@ -48,67 +114,20 @@
     </div>
 </div>
 
-<!-- Column Filters -->
-{% if table_columns %}
+<!-- Active Filters Display -->
+{% if filters %}
 <div class="row mb-3">
     <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Filter by Columns</h5>
-            </div>
-            <div class="card-body">
-                <form method="GET" action="/" id="filterForm" class="row">
-                    <!-- Preserve search query -->
-                    {% if search_query %}
-                        <input type="hidden" name="search" value="{{ search_query }}">
+        <div class="alert alert-info">
+            <strong>Active Filters:</strong>
+            {% for prop, value in filters.items() %}
+                {% for column in table_columns %}
+                    {% if column.property == prop %}
+                        <span class="badge badge-primary mr-1">{{ column.label }}: {{ value }}</span>
                     {% endif %}
-                    
-                    {% for column in table_columns %}
-                        <div class="col-md-3 mb-2">
-                            <label for="filter_{{ column.property }}" class="form-label">{{ column.label }}</label>
-                            {% set filter_info = filter_options.get(column.property, {}) %}
-                            {% set unique_values = filter_info.get('values', []) %}
-                            {% set filter_type = filter_info.get('filter_type', 'text') %}
-                            {% set characteristics = filter_info.get('characteristics', {}) %}
-                            
-                            {% if filter_type == 'dropdown' %}
-                                <!-- Use dropdown for categorical data -->
-                                <select class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}">
-                                    <option value="">All {{ column.label }}s</option>
-                                    {% for value in unique_values %}
-                                        <option value="{{ value }}" {% if filters.get(column.property) == value %}selected{% endif %}>{{ value }}</option>
-                                    {% endfor %}
-                                </select>
-                                {% if characteristics.get('is_categorical') %}
-                                    <small class="form-text text-muted">📊 Categorical ({{ characteristics.get('unique_count', 0) }} options)</small>
-                                {% endif %}
-                            {% elif filter_type == 'date' %}
-                                <!-- Use date input for date fields -->
-                                <input type="date" class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
-                                       value="{{ filters.get(column.property, '') }}">
-                                <small class="form-text text-muted">📅 Date field</small>
-                            {% elif filter_type == 'range' and characteristics.get('is_numeric') %}
-                                <!-- Use number input for numeric ranges -->
-                                <input type="number" class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
-                                       placeholder="Filter by {{ column.label|lower }}..." value="{{ filters.get(column.property, '') }}">
-                                <small class="form-text text-muted">🔢 Numeric field</small>
-                            {% else %}
-                                <!-- Use text input for text fields or many unique values -->
-                                <input type="text" class="form-control filter-input" name="filter_{{ column.property }}" id="filter_{{ column.property }}" 
-                                       placeholder="Filter by {{ column.label|lower }}..." value="{{ filters.get(column.property, '') }}">
-                                {% if characteristics.get('unique_count', 0) > 0 %}
-                                    <small class="form-text text-muted">📝 Text field ({{ characteristics.get('unique_count', 0) }} unique values)</small>
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                    
-                    <div class="col-md-12 mt-2">
-                        <button type="submit" class="btn btn-primary">Apply Filters</button>
-                        <a href="/" class="btn btn-secondary">Clear All Filters</a>
-                    </div>
-                </form>
-            </div>
+                {% endfor %}
+            {% endfor %}
+            <a href="/" class="btn btn-outline-primary btn-sm ml-2">Clear All</a>
         </div>
     </div>
 </div>
@@ -126,62 +145,66 @@
 {% endif %}
 
 <div class="row">
-<table class="table table-striped table-responsive table-sm" id="dataTable">
-    <thead>
-        <tr>
-            {% if table_columns %}
-                {% for column in table_columns %}
-                    <th scope="col">{{ column.label }}</th>
-                {% endfor %}
-            {% else %}
-                <!-- Fallback to original columns if no configuration -->
-                <th scope="col">Title / ID</th>
-                <th scope="col">Creation Date</th>
-            {% endif %}
-            {% if user %}
-                <th scope="col"></th>
-            {% endif %}
-        </tr>
-    </thead>
-    <tbody>
-        {%for key in instances %}
-        <tr>
-            {% if table_columns %}
-                {% for column in table_columns %}
-                    <td>
-                        {% if column.property == 'title' %}
-                            <a href="./instance/{{ key }}">{{ instances[key].properties.get(column.property, instances[key].get('title', '')) }}</a>
+    <div class="col-md-12">
+        <div class="table-responsive">
+            <table class="table table-striped table-sm" id="dataTable">
+                <thead>
+                    <tr>
+                        {% if table_columns %}
+                            {% for column in table_columns %}
+                                <th scope="col">{{ column.label }}</th>
+                            {% endfor %}
                         {% else %}
-                            {{ instances[key].properties.get(column.property, '') }}
+                            <!-- Fallback to original columns if no configuration -->
+                            <th scope="col">Title / ID</th>
+                            <th scope="col">Creation Date</th>
                         {% endif %}
-                    </td>
-                {% endfor %}
-            {% else %}
-                <!-- Fallback to original columns if no configuration -->
-                <td><a href="./instance/{{ key }}">{{instances[key]["title"]}}</a></td>
-                <td><time datetime="{{instances[key]['time']}}"/></td>
-            {% endif %}
-            {% if user %}
-                {% if template_id is defined %}
-                <td><a href="https://cedar.metadatacenter.org/instances/edit/{{ key }}" role="button" class="btn btn-secondary float-right btn-sm">Edit</a></td>
-                {% else %}
-                <td><a href="./instance/{{ key }}/edit" role="button" class="btn btn-secondary float-right btn-sm">Edit</a></td>
-                {% endif %}
-            {% endif %}
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="{% if user %}{{ (table_columns|length if table_columns else 2) + 1 }}{% else %}{{ table_columns|length if table_columns else 2 }}{% endif %}" class="text-center text-muted">
-                {% if search_query %}
-                    No form instances found matching your search query.
-                {% else %}
-                    No form instances available.
-                {% endif %}
-            </td>
-        </tr>
-        {%endfor%}
-    </tbody>
-</table>
+                        {% if user %}
+                            <th scope="col">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {%for key in instances %}
+                    <tr>
+                        {% if table_columns %}
+                            {% for column in table_columns %}
+                                <td>
+                                    {% if column.property == 'title' %}
+                                        <a href="./instance/{{ key }}">{{ instances[key].properties.get(column.property, instances[key].get('title', '')) }}</a>
+                                    {% else %}
+                                        {{ instances[key].properties.get(column.property, '') }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Fallback to original columns if no configuration -->
+                            <td><a href="./instance/{{ key }}">{{instances[key]["title"]}}</a></td>
+                            <td><time datetime="{{instances[key]['time']}}"/></td>
+                        {% endif %}
+                        {% if user %}
+                            {% if template_id is defined %}
+                            <td><a href="https://cedar.metadatacenter.org/instances/edit/{{ key }}" role="button" class="btn btn-secondary btn-sm">Edit</a></td>
+                            {% else %}
+                            <td><a href="./instance/{{ key }}/edit" role="button" class="btn btn-secondary btn-sm">Edit</a></td>
+                            {% endif %}
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{% if user %}{{ (table_columns|length if table_columns else 2) + 1 }}{% else %}{{ table_columns|length if table_columns else 2 }}{% endif %}" class="text-center text-muted">
+                            {% if search_query %}
+                                No form instances found matching your search query.
+                            {% else %}
+                                No form instances available.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {%endfor%}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- Real-time filtering JavaScript -->
