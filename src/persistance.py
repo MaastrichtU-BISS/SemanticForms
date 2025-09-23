@@ -525,6 +525,65 @@ class FilePersistance(Persistance):
         
         return filter_options
     
+    def get_sortable_value(self, instance_data, sort_property):
+        """
+        Get a sortable value for the given property from instance data.
+        Handles different data types appropriately for sorting.
+        
+        input:
+            - instance_data: the instance data dictionary
+            - sort_property: the property to extract for sorting
+        output:
+            - a sortable value (string, number, or comparable type)
+        """
+        # Get the raw property value
+        property_value = instance_data.get('properties', {}).get(sort_property, '')
+        
+        # Handle empty values - sort them last
+        if not property_value or property_value == '':
+            return 'zzz_empty'  # This will sort empty values to the end
+        
+        # Convert to string for consistent handling
+        str_value = str(property_value).strip()
+        
+        # Try to convert to number if it looks numeric
+        try:
+            # Check if it's a pure number
+            if str_value.replace('.', '').replace('-', '').isdigit():
+                return float(str_value)
+        except (ValueError, AttributeError):
+            pass
+        
+        # Try to parse as date if it looks like a date
+        try:
+            import re
+            # Check for common date patterns
+            date_patterns = [
+                r'\d{4}-\d{2}-\d{2}',  # YYYY-MM-DD
+                r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
+                r'\d{4}/\d{2}/\d{2}',  # YYYY/MM/DD
+                r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}',  # ISO datetime
+            ]
+            
+            for pattern in date_patterns:
+                if re.search(pattern, str_value):
+                    try:
+                        from datetime import datetime
+                        # Try different date parsing approaches
+                        for date_format in ['%Y-%m-%d', '%m/%d/%Y', '%Y/%m/%d', '%Y-%m-%dT%H:%M:%S']:
+                            try:
+                                parsed_date = datetime.strptime(str_value[:len(date_format.replace('%H:%M:%S', ''))].split('T')[0], date_format.split('T')[0])
+                                return parsed_date.timestamp()  # Return timestamp for sorting
+                            except ValueError:
+                                continue
+                    except ImportError:
+                        pass
+        except Exception:
+            pass
+        
+        # Default to case-insensitive string sorting
+        return str_value.lower()
+    
     def get_instances(self, search_query=None):
         """
         List all instances in the persistance folder.

@@ -9,9 +9,13 @@
 </div>
 <div class="sidebar-content">
     <form method="GET" action="/" id="filterForm">
-        <!-- Preserve search query -->
+        <!-- Preserve search query and sort state -->
         {% if search_query %}
             <input type="hidden" name="search" value="{{ search_query }}">
+        {% endif %}
+        {% if sort_info.sort_by %}
+            <input type="hidden" name="sort" value="{{ sort_info.sort_by }}">
+            <input type="hidden" name="order" value="{{ sort_info.sort_order }}">
         {% endif %}
         
         {% for column in table_columns %}
@@ -102,13 +106,17 @@
                 </div>
             </div>
             
-            <!-- Hidden inputs to preserve existing filters -->
+            <!-- Hidden inputs to preserve existing filters and sort state -->
             {% if table_columns %}
                 {% for column in table_columns %}
                     {% if filters.get(column.property) %}
                         <input type="hidden" name="filter_{{ column.property }}" value="{{ filters.get(column.property) }}">
                     {% endif %}
                 {% endfor %}
+            {% endif %}
+            {% if sort_info.sort_by %}
+                <input type="hidden" name="sort" value="{{ sort_info.sort_by }}">
+                <input type="hidden" name="order" value="{{ sort_info.sort_order }}">
             {% endif %}
         </form>
     </div>
@@ -152,7 +160,19 @@
                     <tr>
                         {% if table_columns %}
                             {% for column in table_columns %}
-                                <th scope="col">{{ column.label }}</th>
+                                <th scope="col" class="sortable-header" style="cursor: pointer; position: relative;" 
+                                    onclick="sortTable('{{ column.property }}')">
+                                    {{ column.label }}
+                                    {% if sort_info.sort_by == column.property %}
+                                        {% if sort_info.sort_order == 'asc' %}
+                                            <span style="float: right;">▲</span>
+                                        {% else %}
+                                            <span style="float: right;">▼</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span style="float: right; opacity: 0.3;">⇅</span>
+                                    {% endif %}
+                                </th>
                             {% endfor %}
                         {% else %}
                             <!-- Fallback to original columns if no configuration -->
@@ -207,12 +227,42 @@
     </div>
 </div>
 
-<!-- Real-time filtering JavaScript -->
+<!-- Real-time filtering and sorting JavaScript -->
 <script>
+// Sorting functionality
+function sortTable(property) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSort = urlParams.get('sort');
+    const currentOrder = urlParams.get('order');
+    
+    let newOrder = 'asc';
+    if (currentSort === property && currentOrder === 'asc') {
+        newOrder = 'desc';
+    }
+    
+    // Set sort parameters
+    urlParams.set('sort', property);
+    urlParams.set('order', newOrder);
+    
+    // Navigate to sorted URL
+    window.location.search = urlParams.toString();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Enable real-time filtering for text inputs
     const textInputs = document.querySelectorAll('.filter-input[type="text"]');
     const selectInputs = document.querySelectorAll('select.filter-input');
+    
+    // Add hover effect to sortable headers
+    const sortableHeaders = document.querySelectorAll('.sortable-header');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        header.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
     
     // Debounce function for text input
     function debounce(func, wait) {

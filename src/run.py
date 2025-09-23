@@ -78,6 +78,10 @@ def index():
     # Get search query from URL parameters
     search_query = request.args.get('search', '')
     
+    # Get sort parameters
+    sort_by = request.args.get('sort', '')
+    sort_order = request.args.get('order', 'asc')  # asc or desc
+    
     # Get filter parameters
     filters = {}
     table_columns = config.get("tableColumns", [])
@@ -107,11 +111,26 @@ def index():
                 filtered_instances[instance_id] = instance_data
         instances = filtered_instances
     
+    # Apply sorting if requested
+    if sort_by and table_columns:
+        # Validate sort_by is in configured columns
+        valid_properties = [col['property'] for col in table_columns]
+        if sort_by in valid_properties:
+            instances = dict(sorted(instances.items(), 
+                key=lambda item: persistance.get_sortable_value(item[1], sort_by),
+                reverse=(sort_order == 'desc')))
+    
     # Get enhanced filter options with property analysis
     filter_options = persistance.get_enhanced_filter_options(table_columns)
 
     if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
         return Response(json.dumps(instances), mimetype='application/json')
+    
+    # Add sort info to template context
+    sort_info = {
+        'sort_by': sort_by,
+        'sort_order': sort_order
+    }
     
     if config["template"]["storage"]=="cedar":
         return render_template("index.html", 
@@ -120,14 +139,16 @@ def index():
                              search_query=search_query,
                              table_columns=table_columns,
                              filters=filters,
-                             filter_options=filter_options)
+                             filter_options=filter_options,
+                             sort_info=sort_info)
     else:
         return render_template("index.html", 
                              instances=instances, 
                              search_query=search_query,
                              table_columns=table_columns,
                              filters=filters,
-                             filter_options=filter_options)
+                             filter_options=filter_options,
+                             sort_info=sort_info)
 
 # Login page
 @app.route("/login", methods=["GET", "POST"])
