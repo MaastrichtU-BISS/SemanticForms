@@ -17,16 +17,16 @@
       /* Sidebar styles */
       .filter-sidebar {
         position: fixed;
-        top: 0;
+        top: 56px; /* Start below navbar (Bootstrap navbar height) */
         left: -320px; /* Initially hidden off-screen */
         width: 320px;
-        height: 100vh;
+        height: calc(100vh - 56px); /* Full height minus navbar */
         background-color: #f8f9fa;
         border-right: 2px solid #dee2e6;
         transition: left 0.3s ease-in-out;
         z-index: 1040;
         overflow-y: auto;
-        padding-top: 60px; /* Account for navbar height */
+        padding-top: 0; /* Remove extra padding since we're already below navbar */
       }
       
       .filter-sidebar.open {
@@ -53,23 +53,24 @@
       
       .filter-toggle-btn {
         position: fixed;
-        top: 70px;
+        top: 56px; /* Align with sidebar, right below navbar */
         left: 10px;
         z-index: 1050;
-        border-radius: 0 5px 5px 0;
+        border-radius: 0 0 5px 0; /* Only round bottom-right corner */
         padding: 8px 12px;
+        border-top: none; /* No top border to blend with navbar */
       }
       
       .filter-toggle-btn.sidebar-open {
-        left: 330px;
+        left: 330px; /* Move to right edge of open sidebar */
       }
       
       .sidebar-overlay {
         position: fixed;
-        top: 0;
+        top: 56px; /* Start below navbar */
         left: 0;
         width: 100%;
-        height: 100%;
+        height: calc(100vh - 56px); /* Full height minus navbar */
         background-color: rgba(0, 0, 0, 0.5);
         z-index: 1030;
         display: none;
@@ -82,11 +83,11 @@
       /* Mobile responsiveness */
       @media (max-width: 768px) {
         .content-area.sidebar-open {
-          margin-left: 0;
+          margin-left: 0; /* Don't push content on mobile */
         }
         
         .filter-toggle-btn.sidebar-open {
-          left: 10px;
+          left: 10px; /* Keep button in same position on mobile */
         }
         
         .sidebar-overlay.show {
