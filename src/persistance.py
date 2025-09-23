@@ -248,6 +248,7 @@ class FilePersistance(Persistance):
         """
         Extract a nested property value using dot notation path.
         Similar to __find_title_by_path but for any property.
+        Enhanced to handle arrays and complex JSON-LD structures.
         
         input:
             - metadata: the JSON-LD metadata object
@@ -266,22 +267,55 @@ class FilePersistance(Persistance):
                 return ""
         
         # Extract value based on the final structure
-        if isinstance(current, dict) and "@value" in current:
-            return current["@value"] if current["@value"] is not None else ""
+        return self.__extract_value_from_structure(current)
+    
+    def __extract_value_from_structure(self, current):
+        """
+        Extract a meaningful value from various JSON-LD structures.
+        Handles arrays, @value objects, direct values, and complex nested structures.
+        
+        input:
+            - current: the structure to extract value from
+        output:
+            - the extracted value as a string, or empty string if not found
+        """
+        if current is None:
+            return ""
+        elif isinstance(current, list):
+            # Handle arrays - extract from first non-null item
+            for item in current:
+                if item is not None:
+                    extracted = self.__extract_value_from_structure(item)
+                    if extracted:
+                        return extracted
+            return ""
+        elif isinstance(current, dict) and "@value" in current:
+            # Handle @value JSON-LD structure
+            value = current["@value"]
+            return str(value) if value is not None else ""
         elif isinstance(current, str):
             return current
         elif isinstance(current, (int, float)):
             return str(current)
         elif isinstance(current, dict):
             # If it's a dict without @value, try to find a meaningful string representation
-            # Look for common value fields
-            for value_key in ["@value", "value", "name", "title", "label"]:
+            # Look for common value fields in order of preference
+            for value_key in ["@value", "value", "name", "title", "label", "rdfs:label"]:
                 if value_key in current:
                     val = current[value_key]
                     if isinstance(val, dict) and "@value" in val:
                         return val["@value"] if val["@value"] is not None else ""
                     elif isinstance(val, (str, int, float)):
                         return str(val)
+            
+            # If no standard value field found, try to get a string representation
+            # This handles cases where the dict might have other meaningful content
+            if len(current) == 1:
+                # If there's only one key, use its value
+                key, val = next(iter(current.items()))
+                if isinstance(val, (str, int, float)):
+                    return str(val)
+            
             return ""
         
         return ""
@@ -382,28 +416,73 @@ class FilePersistance(Persistance):
         """
         import re
         
-        # Check property name for date indicators
-        date_indicators = ['date', 'created', 'updated', 'time', 'timestamp']
-        if any(indicator in property_name.lower() for indicator in date_indicators):
-            return True
+        # Check property name for date indicators - be more specific to avoid false positives
+        property_lower = property_name.lower()
         
-        # Check value formats for date patterns
-        date_patterns = [
-            r'\d{4}-\d{2}-\d{2}',  # YYYY-MM-DD
-            r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
-            r'\d{4}/\d{2}/\d{2}',  # YYYY/MM/DD
-            r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}',  # ISO datetime
+        # Specific date field patterns that are more likely to be dates
+        date_field_patterns = [
+            'creation_date', 'created_date', 'date_created',
+            'updated_date', 'date_updated', 'last_updated', 
+            'timestamp', 'created_on', 'updated_on',
+            'date', 'time'
         ]
         
-        if len(values) == 0:
-            return False
+        # Check for exact matches or patterns that end with date indicators
+        is_date_by_name = False
+        for pattern in date_field_patterns:
+            if (pattern == property_lower or 
+                property_lower.endswith('_' + pattern) or 
+                property_lower.endswith('.' + pattern) or
+                property_lower.startswith(pattern + '_') or
+                property_lower.startswith(pattern + '.')):
+                is_date_by_name = True
+                break
         
-        matching_values = 0
-        for value in values[:5]:  # Check first 5 values
-            if any(re.match(pattern, str(value)) for pattern in date_patterns):
-                matching_values += 1
+        # Also check for simple standalone words but be more restrictive
+        simple_date_words = ['date', 'time', 'timestamp']
+        if any(word == property_lower.split('.')[-1] for word in simple_date_words):
+            is_date_by_name = True
         
-        return matching_values / min(len(values), 5) > 0.5
+        # If property name suggests it's not a date field, check values more thoroughly
+        if not is_date_by_name:
+            # Check value formats for date patterns
+            date_patterns = [
+                r'^\d{4}-\d{2}-\d{2}$',  # YYYY-MM-DD
+                r'^\d{2}/\d{2}/\d{4}$',  # MM/DD/YYYY  
+                r'^\d{4}/\d{2}/\d{2}$',  # YYYY/MM/DD
+                r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}',  # ISO datetime
+            ]
+            
+            if len(values) == 0:
+                return False
+            
+            matching_values = 0
+            for value in values[:5]:  # Check first 5 values
+                if any(re.match(pattern, str(value)) for pattern in date_patterns):
+                    matching_values += 1
+            
+            return matching_values / min(len(values), 5) > 0.8  # Require 80% match
+        
+        # If property name suggests it's a date field, also check values to confirm
+        if is_date_by_name and len(values) > 0:
+            # Check if values actually look like dates
+            date_patterns = [
+                r'\d{4}-\d{2}-\d{2}',  # YYYY-MM-DD
+                r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
+                r'\d{4}/\d{2}/\d{2}',  # YYYY/MM/DD
+                r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}',  # ISO datetime
+            ]
+            
+            matching_values = 0
+            for value in values[:5]:
+                if any(re.search(pattern, str(value)) for pattern in date_patterns):
+                    matching_values += 1
+            
+            # If name suggests date but values don't match, it's probably not a date
+            if matching_values == 0 and len(values) > 0:
+                return False
+        
+        return is_date_by_name
     
     def _is_numeric_property(self, values):
         """
