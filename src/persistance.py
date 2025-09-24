@@ -64,7 +64,16 @@ class FilePersistance(Persistance):
         ]
         
         for pattern in title_patterns:
-            title = self.__extract_unified_property_value(metadata, pattern)
+            # Use direct nested property extraction to avoid recursion
+            if '.' in pattern:
+                title = self.__extract_nested_property_value(metadata, pattern)
+            else:
+                # Direct property lookup
+                if pattern in metadata:
+                    title = self.__extract_value_from_structure(metadata[pattern])
+                else:
+                    title = None
+            
             if title and title != "No title found":
                 return title
                     
@@ -238,7 +247,14 @@ class FilePersistance(Persistance):
         
         # Special cases for common properties
         if property_name == "title":
-            return self.__find_title_recursively(metadata, self.__title_uri.split("|"))
+            # Use direct title search without recursion - just look for common title fields
+            title_fields = ["title", "name", "label", "rdfs:label", "schema:name", "dct:title"]
+            for field in title_fields:
+                if field in metadata:
+                    value = self.__extract_value_from_structure(metadata[field])
+                    if value:
+                        return value
+            return ""
         elif property_name in ["creation_date", "date_created"]:
             created_on = metadata.get("pav:createdOn", "")
             return self.__extract_value_from_structure(created_on) if created_on else ""
