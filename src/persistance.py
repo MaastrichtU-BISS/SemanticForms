@@ -35,8 +35,9 @@ class FilePersistance(Persistance):
         """
         Find title by searching through JSON-LD structure.
         Enhanced to handle complex nested structures like CEDAR templates.
+        Now uses unified property extraction logic.
         """
-        # First, try the original recursive search approach
+        # First, try the original recursive search approach using context
         try:
             predicate = uri_tree[0]  # Don't modify the original list
             for key in metadata.get("@context", {}):
@@ -46,79 +47,67 @@ class FilePersistance(Persistance):
                     if len(uri_tree) > 1:
                         return self.__find_title_recursively(metadata[titleTag], uri_tree[1:])
                     else:
-                        if titleTag in metadata and isinstance(metadata[titleTag], dict) and "@value" in metadata[titleTag]:
-                            return metadata[titleTag]["@value"]
-                        elif titleTag in metadata:
-                            return str(metadata[titleTag])
+                        found_value = self.__extract_value_from_structure(metadata.get(titleTag))
+                        if found_value:
+                            return found_value
         except (KeyError, IndexError, TypeError):
             pass
         
         # Enhanced search: Look for common title patterns in CEDAR JSON-LD
         title_patterns = [
             # Direct patterns
-            ["title"],
-            ["name"], 
-            ["label"],
-            ["rdfs:label"],
-            ["schema:name"],
-            ["dct:title"],
+            "title", "name", "label", "rdfs:label", "schema:name", "dct:title",
             # CEDAR nested patterns - look for "General Model Information" -> "Title"
-            ["General Model Information", "Title"],
+            "General Model Information.Title",
             # Other nested patterns
-            ["metadata", "title"],
-            ["metadata", "name"],
+            "metadata.title", "metadata.name",
         ]
         
         for pattern in title_patterns:
-            title = self.__find_title_by_path(metadata, pattern)
+            title = self.__extract_unified_property_value(metadata, pattern)
             if title and title != "No title found":
                 return title
                     
         return "No title found"
-    
-    def __find_title_by_path(self, data, path):
-        """
-        Navigate through nested structure following the given path to find a title.
-        """
-        current = data
-        for step in path:
-            if isinstance(current, dict) and step in current:
-                current = current[step]
-            else:
-                return None
-        
-        # Extract value if it's in @value format
-        if isinstance(current, dict) and "@value" in current:
-            return current["@value"] if current["@value"] is not None else None
-        elif isinstance(current, str):
-            return current
-        
-        return None
 
     def __extract_searchable_content(self, metadata):
         """
         Extract all searchable text content from JSON-LD metadata.
         This includes values from fields that contain @value properties.
+        Uses unified value extraction for consistency.
         """
         searchable_text = []
         
-        def extract_values(obj):
+        def extract_values_recursively(obj):
+            """
+            Recursively extract searchable values from nested JSON-LD structure.
+            """
             if isinstance(obj, dict):
-                if "@value" in obj:
+                if "@value" in obj and obj["@value"] is not None:
                     # Extract the actual value from @value fields
                     searchable_text.append(str(obj["@value"]))
                 else:
-                    # Recursively process nested objects
+                    # Recursively process nested objects, skipping metadata fields
                     for key, value in obj.items():
-                        # Skip metadata fields like @id, @context, pav:createdOn, etc.
-                        if not key.startswith("@") and not key.startswith("pav:") and not key.startswith("schema:isBasedOn"):
-                            extract_values(value)
+                        if not self.__is_metadata_field(key):
+                            extract_values_recursively(value)
             elif isinstance(obj, list):
                 for item in obj:
-                    extract_values(item)
+                    extract_values_recursively(item)
+            elif isinstance(obj, (str, int, float)) and obj is not None:
+                # Direct values that aren't wrapped in @value
+                searchable_text.append(str(obj))
         
-        extract_values(metadata)
+        extract_values_recursively(metadata)
         return " ".join(searchable_text).lower()  # Convert to lowercase for case-insensitive search
+    
+    def __is_metadata_field(self, field_name):
+        """
+        Check if a field name represents metadata that should be excluded from search content.
+        Centralizes the metadata field detection logic.
+        """
+        metadata_prefixes = ["@", "pav:", "schema:isBasedOn"]
+        return any(field_name.startswith(prefix) for prefix in metadata_prefixes)
                     
 
     
@@ -191,10 +180,10 @@ class FilePersistance(Persistance):
             enhanced_data = instance_data.copy()
             enhanced_data['properties'] = {}
             
-            # Extract each configured property
+            # Extract each configured property using unified method
             for column in table_columns:
                 property_name = column['property']
-                property_value = self.__extract_property_value(instance_data['metadata'], property_name)
+                property_value = self.__extract_unified_property_value(instance_data['metadata'], property_name)
                 enhanced_data['properties'][property_name] = property_value
             
             enhanced_instances[instance_id] = enhanced_data
@@ -204,7 +193,7 @@ class FilePersistance(Persistance):
     def __extract_property_value(self, metadata, property_name):
         """
         Extract a specific property value from JSON-LD metadata.
-        Now supports nested properties using dot notation (e.g., "metadata.project", "details.team.lead").
+        Now delegates to unified extraction method for consistency.
         
         input:
             - metadata: the JSON-LD metadata object
@@ -212,42 +201,56 @@ class FilePersistance(Persistance):
         output:
             - the property value as a string, or empty string if not found
         """
+        return self.__extract_unified_property_value(metadata, property_name)
+    
+    def __extract_unified_property_value(self, metadata, property_name):
+        """
+        Unified method to extract any property value from JSON-LD metadata.
+        Supports nested properties using dot notation and handles all JSON-LD structures.
+        This consolidates the logic from multiple redundant methods.
+        
+        input:
+            - metadata: the JSON-LD metadata object
+            - property_name: the property to extract (supports dot notation for nested properties)
+        output:
+            - the property value as a string, or empty string if not found
+        """
+        if not property_name or not metadata:
+            return ""
+        
         # Handle nested property paths (e.g., "metadata.project", "details.team.lead")
         if '.' in property_name:
             return self.__extract_nested_property_value(metadata, property_name)
         
         # First try direct property access
         if property_name in metadata:
-            value = metadata[property_name]
-            if isinstance(value, dict) and "@value" in value:
-                return value["@value"]
-            elif isinstance(value, str):
+            value = self.__extract_value_from_structure(metadata[property_name])
+            if value:
                 return value
         
         # Try to find through context mapping
         context = metadata.get("@context", {})
         for key, uri in context.items():
             if key == property_name and key in metadata:
-                value = metadata[key]
-                if isinstance(value, dict) and "@value" in value:
-                    return value["@value"]
-                elif isinstance(value, str):
+                value = self.__extract_value_from_structure(metadata[key])
+                if value:
                     return value
         
         # Special cases for common properties
         if property_name == "title":
             return self.__find_title_recursively(metadata, self.__title_uri.split("|"))
-        elif property_name == "creation_date" or property_name == "date_created":
-            return metadata.get("pav:createdOn", "")
-        elif property_name == "updated_date" or property_name == "date_updated":
-            return metadata.get("pav:lastUpdatedOn", "")
+        elif property_name in ["creation_date", "date_created"]:
+            created_on = metadata.get("pav:createdOn", "")
+            return self.__extract_value_from_structure(created_on) if created_on else ""
+        elif property_name in ["updated_date", "date_updated"]:
+            updated_on = metadata.get("pav:lastUpdatedOn", "")
+            return self.__extract_value_from_structure(updated_on) if updated_on else ""
         
         return ""
     
     def __extract_nested_property_value(self, metadata, property_path):
         """
         Extract a nested property value using dot notation path.
-        Similar to __find_title_by_path but for any property.
         Enhanced to handle arrays and complex JSON-LD structures.
         
         input:
@@ -256,6 +259,9 @@ class FilePersistance(Persistance):
         output:
             - the property value as a string, or empty string if not found
         """
+        if not property_path or not metadata:
+            return ""
+            
         path_parts = property_path.split('.')
         current = metadata
         
@@ -266,13 +272,14 @@ class FilePersistance(Persistance):
             else:
                 return ""
         
-        # Extract value based on the final structure
+        # Extract value using unified extraction logic
         return self.__extract_value_from_structure(current)
     
     def __extract_value_from_structure(self, current):
         """
         Extract a meaningful value from various JSON-LD structures.
         Handles arrays, @value objects, direct values, and complex nested structures.
+        This is the core method that handles all value extraction consistently.
         
         input:
             - current: the structure to extract value from
@@ -293,30 +300,26 @@ class FilePersistance(Persistance):
             # Handle @value JSON-LD structure
             value = current["@value"]
             return str(value) if value is not None else ""
-        elif isinstance(current, str):
-            return current
-        elif isinstance(current, (int, float)):
+        elif isinstance(current, (str, int, float)):
+            # Handle direct primitive values
             return str(current)
         elif isinstance(current, dict):
-            # If it's a dict without @value, try to find a meaningful string representation
-            # Look for common value fields in order of preference
-            for value_key in ["@value", "value", "name", "title", "label", "rdfs:label"]:
+            # Handle complex dict structures - look for meaningful content
+            # Try common value fields in order of preference
+            value_fields = ["@value", "value", "name", "title", "label", "rdfs:label"]
+            for value_key in value_fields:
                 if value_key in current:
-                    val = current[value_key]
-                    if isinstance(val, dict) and "@value" in val:
-                        return val["@value"] if val["@value"] is not None else ""
-                    elif isinstance(val, (str, int, float)):
-                        return str(val)
+                    extracted = self.__extract_value_from_structure(current[value_key])
+                    if extracted:
+                        return extracted
             
-            # If no standard value field found, try to get a string representation
-            # This handles cases where the dict might have other meaningful content
+            # If no standard value field found and dict has only one key, use its value
             if len(current) == 1:
-                # If there's only one key, use its value
                 key, val = next(iter(current.items()))
-                if isinstance(val, (str, int, float)):
-                    return str(val)
-            
-            return ""
+                if not self.__is_metadata_field(key):  # Avoid metadata fields
+                    extracted = self.__extract_value_from_structure(val)
+                    if extracted:
+                        return extracted
         
         return ""
 
@@ -335,7 +338,7 @@ class FilePersistance(Persistance):
         unique_values = set()
         
         for instance_id, instance_data in self.__cached_items.items():
-            value = self.__extract_property_value(instance_data['metadata'], property_name)
+            value = self.__extract_unified_property_value(instance_data['metadata'], property_name)
             if value and value.strip():
                 unique_values.add(value)
         
@@ -355,7 +358,7 @@ class FilePersistance(Persistance):
         unique_values = set()
         
         for instance_id, instance_data in self.__cached_items.items():
-            value = self.__extract_property_value(instance_data['metadata'], property_name)
+            value = self.__extract_unified_property_value(instance_data['metadata'], property_name)
             if value and value.strip():
                 values.append(value)
                 unique_values.add(value)
