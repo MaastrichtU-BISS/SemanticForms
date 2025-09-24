@@ -53,16 +53,40 @@
       
       .filter-toggle-btn {
         position: fixed;
-        top: 56px; /* Align with sidebar, right below navbar */
-        left: 10px;
+        top: 50%; /* Center vertically */
+        left: 0; /* Dock to the very left side */
+        transform: translateY(-50%); /* Perfect vertical centering */
         z-index: 1050;
-        border-radius: 0 0 5px 0; /* Only round bottom-right corner */
-        padding: 8px 12px;
-        border-top: none; /* No top border to blend with navbar */
+        border-radius: 0 8px 8px 0; /* Round right side only for docked look */
+        padding: 12px 8px;
+        border: none;
+        border-left: none; /* No left border since it's docked */
+        background-color: #007bff;
+        color: white;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: bold;
+        width: 30px;
+        min-width: 30px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.2); /* Shadow only on right side */
+        transition: all 0.3s ease-in-out;
+      }
+      
+      .filter-toggle-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-50%) translateX(2px); /* Slight slide out on hover */
+        box-shadow: 3px 0 8px rgba(0,0,0,0.3);
       }
       
       .filter-toggle-btn.sidebar-open {
-        left: 330px; /* Move to right edge of open sidebar */
+        left: 320px; /* Move to right edge of open sidebar */
+        border-radius: 8px 0 0 8px; /* Round left side when sidebar open */
+        box-shadow: -2px 0 5px rgba(0,0,0,0.2); /* Shadow on left side when open */
+      }
+      
+      .filter-toggle-btn.sidebar-open:hover {
+        transform: translateY(-50%) translateX(-2px); /* Slide into sidebar on hover when open */
+        box-shadow: -3px 0 8px rgba(0,0,0,0.3);
       }
       
       .sidebar-overlay {
@@ -87,7 +111,14 @@
         }
         
         .filter-toggle-btn.sidebar-open {
-          left: 10px; /* Keep button in same position on mobile */
+          left: 0; /* Keep button docked to left on mobile */
+          border-radius: 0 8px 8px 0; /* Keep right-rounded look on mobile */
+          box-shadow: 2px 0 5px rgba(0,0,0,0.2); /* Keep right shadow on mobile */
+        }
+        
+        .filter-toggle-btn.sidebar-open:hover {
+          transform: translateY(-50%) translateX(2px); /* Keep same hover behavior on mobile */
+          box-shadow: 3px 0 8px rgba(0,0,0,0.3);
         }
         
         .sidebar-overlay.show {
@@ -121,7 +152,7 @@
       content.classList.remove('sidebar-open');
       toggleBtn.classList.remove('sidebar-open');
       overlay.classList.remove('show');
-      toggleBtn.innerHTML = '⚙️ Filters';
+      toggleBtn.innerHTML = '&gt;&gt;';
     } else {
       sidebar.classList.add('open');
       content.classList.add('sidebar-open');
@@ -129,7 +160,7 @@
       if (window.innerWidth <= 768) {
         overlay.classList.add('show');
       }
-      toggleBtn.innerHTML = '✖️ Close';
+      toggleBtn.innerHTML = '&lt;&lt;';
     }
   }
   
@@ -144,7 +175,7 @@
     content.classList.remove('sidebar-open');
     toggleBtn.classList.remove('sidebar-open');
     overlay.classList.remove('show');
-    toggleBtn.innerHTML = '⚙️ Filters';
+    toggleBtn.innerHTML = '&gt;&gt;';
   }
 </script>
 
@@ -178,7 +209,7 @@
     <div class="sidebar-overlay" onclick="closeSidebarOverlay()"></div>
     
     <!-- Filter Toggle Button -->
-    <button class="btn btn-primary filter-toggle-btn" onclick="toggleSidebar()">⚙️ Filters</button>
+    <button class="btn btn-primary filter-toggle-btn" onclick="toggleSidebar()">&gt;&gt;</button>
     
     <!-- Filter Sidebar -->
     <div class="filter-sidebar">{% block sidebar %}{% endblock %}</div>
