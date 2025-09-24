@@ -10,9 +10,11 @@ template:
   instance_base_url: http://localhost
   title_predicate: title
 tableColumns:
-  - property: "title"
+  - property: "General Model Information.Title"
     label: "Title"
   - property: "General Model Information.Created by"
-    label: "Created by"
+    label: "Author"
+  - property: "General Model Information.Creation date"
+    label: "Date created"
   - property: "General Model Information.Developed at CDS (Maastro)"
     label: "Developed at CDS"
