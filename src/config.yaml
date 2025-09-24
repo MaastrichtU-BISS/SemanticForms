@@ -18,4 +18,4 @@ tableColumns:
   - property: "General Model Information.Creation date"
     label: "Date created"
   - property: "General Model Information.Developed at CDS (Maastro)"
-    label: "Developed at CDS"
+    label: "Organisation"
