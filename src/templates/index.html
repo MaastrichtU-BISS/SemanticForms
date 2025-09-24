@@ -190,7 +190,7 @@
                         {% if table_columns %}
                             {% for column in table_columns %}
                                 <td>
-                                    {% if column.property == 'title' %}
+                                    {% if column.get('linkable', false) %}
                                         <a href="./instance/{{ key }}">{{ instances[key].properties.get(column.property, instances[key].get('title', '')) }}</a>
                                     {% else %}
                                         {{ instances[key].properties.get(column.property, '') }}
