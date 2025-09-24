@@ -13,6 +13,118 @@
         word-wrap: break-word;         /* All browsers since IE 5.5+ */
         overflow-wrap: break-word;     /* Renamed property in CSS3 draft spec */
       }
+      
+      /* Sidebar styles */
+      .filter-sidebar {
+        position: fixed;
+        top: 56px; /* Start below navbar (Bootstrap navbar height) */
+        left: -320px; /* Initially hidden off-screen */
+        width: 320px;
+        height: calc(100vh - 56px); /* Full height minus navbar */
+        background-color: #f8f9fa;
+        border-right: 2px solid #dee2e6;
+        transition: left 0.3s ease-in-out;
+        z-index: 1040;
+        overflow-y: auto;
+        padding-top: 0; /* Remove extra padding since we're already below navbar */
+      }
+      
+      .filter-sidebar.open {
+        left: 0; /* Slide in when open */
+      }
+      
+      .filter-sidebar .sidebar-header {
+        padding: 1rem;
+        background-color: #e9ecef;
+        border-bottom: 1px solid #dee2e6;
+      }
+      
+      .filter-sidebar .sidebar-content {
+        padding: 1rem;
+      }
+      
+      .content-area {
+        transition: margin-left 0.3s ease-in-out;
+      }
+      
+      .content-area.sidebar-open {
+        margin-left: 320px;
+      }
+      
+      .filter-toggle-btn {
+        position: fixed;
+        top: 50%; /* Center vertically */
+        left: 0; /* Dock to the very left side */
+        transform: translateY(-50%); /* Perfect vertical centering */
+        z-index: 1050;
+        border-radius: 0 8px 8px 0; /* Round right side only for docked look */
+        padding: 12px 8px;
+        border: none;
+        border-left: none; /* No left border since it's docked */
+        background-color: #007bff;
+        color: white;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: bold;
+        width: 30px;
+        min-width: 30px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.2); /* Shadow only on right side */
+        transition: all 0.3s ease-in-out;
+      }
+      
+      .filter-toggle-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-50%) translateX(2px); /* Slight slide out on hover */
+        box-shadow: 3px 0 8px rgba(0,0,0,0.3);
+      }
+      
+      .filter-toggle-btn.sidebar-open {
+        left: 320px; /* Move to right edge of open sidebar */
+        border-radius: 8px 0 0 8px; /* Round left side when sidebar open */
+        box-shadow: -2px 0 5px rgba(0,0,0,0.2); /* Shadow on left side when open */
+      }
+      
+      .filter-toggle-btn.sidebar-open:hover {
+        transform: translateY(-50%) translateX(-2px); /* Slide into sidebar on hover when open */
+        box-shadow: -3px 0 8px rgba(0,0,0,0.3);
+      }
+      
+      .sidebar-overlay {
+        position: fixed;
+        top: 56px; /* Start below navbar */
+        left: 0;
+        width: 100%;
+        height: calc(100vh - 56px); /* Full height minus navbar */
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1030;
+        display: none;
+      }
+      
+      .sidebar-overlay.show {
+        display: block;
+      }
+      
+      /* Mobile responsiveness */
+      @media (max-width: 768px) {
+        .content-area.sidebar-open {
+          margin-left: 0; /* Don't push content on mobile */
+        }
+        
+        .filter-toggle-btn.sidebar-open {
+          left: 0; /* Keep button docked to left on mobile */
+          border-radius: 0 8px 8px 0; /* Keep right-rounded look on mobile */
+          box-shadow: 2px 0 5px rgba(0,0,0,0.2); /* Keep right shadow on mobile */
+        }
+        
+        .filter-toggle-btn.sidebar-open:hover {
+          transform: translateY(-50%) translateX(2px); /* Keep same hover behavior on mobile */
+          box-shadow: 3px 0 8px rgba(0,0,0,0.3);
+        }
+        
+        .sidebar-overlay.show {
+          display: block;
+        }
+      }
     </style>
 </head>
 
@@ -24,6 +136,46 @@
       timeObject.innerHTML = new Date(dateTime).toLocaleString()
       console.log(timeObject.innerHTML)
     });
+  }
+  
+  // Sidebar toggle functionality
+  function toggleSidebar() {
+    const sidebar = document.querySelector('.filter-sidebar');
+    const content = document.querySelector('.content-area');
+    const toggleBtn = document.querySelector('.filter-toggle-btn');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    const isOpen = sidebar.classList.contains('open');
+    
+    if (isOpen) {
+      sidebar.classList.remove('open');
+      content.classList.remove('sidebar-open');
+      toggleBtn.classList.remove('sidebar-open');
+      overlay.classList.remove('show');
+      toggleBtn.innerHTML = '&gt;&gt;';
+    } else {
+      sidebar.classList.add('open');
+      content.classList.add('sidebar-open');
+      toggleBtn.classList.add('sidebar-open');
+      if (window.innerWidth <= 768) {
+        overlay.classList.add('show');
+      }
+      toggleBtn.innerHTML = '&lt;&lt;';
+    }
+  }
+  
+  // Close sidebar when clicking overlay on mobile
+  function closeSidebarOverlay() {
+    const sidebar = document.querySelector('.filter-sidebar');
+    const content = document.querySelector('.content-area');
+    const toggleBtn = document.querySelector('.filter-toggle-btn');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.remove('open');
+    content.classList.remove('sidebar-open');
+    toggleBtn.classList.remove('sidebar-open');
+    overlay.classList.remove('show');
+    toggleBtn.innerHTML = '&gt;&gt;';
   }
 </script>
 
@@ -52,7 +204,18 @@
           </li>
         </ul>
       </nav>
-    <div class="container pt-5">{% block content %}{% endblock %}</div>
+    
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" onclick="closeSidebarOverlay()"></div>
+    
+    <!-- Filter Toggle Button -->
+    <button class="btn btn-primary filter-toggle-btn" onclick="toggleSidebar()">&gt;&gt;</button>
+    
+    <!-- Filter Sidebar -->
+    <div class="filter-sidebar">{% block sidebar %}{% endblock %}</div>
+    
+    <!-- Main Content Area -->
+    <div class="container pt-5 content-area">{% block content %}{% endblock %}</div>
 </body>
 
 </html>

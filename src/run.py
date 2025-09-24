@@ -77,15 +77,78 @@ def render_template(
 def index():
     # Get search query from URL parameters
     search_query = request.args.get('search', '')
-    instances = persistance.get_instances(search_query if search_query.strip() else None)
+    
+    # Get sort parameters
+    sort_by = request.args.get('sort', '')
+    sort_order = request.args.get('order', 'asc')  # asc or desc
+    
+    # Get filter parameters
+    filters = {}
+    table_columns = config.get("tableColumns", [])
+    
+    for column in table_columns:
+        filter_value = request.args.get(f"filter_{column['property']}", '')
+        if filter_value:
+            filters[column['property']] = filter_value
+    
+    # Get instances with properties extracted based on table columns
+    instances = persistance.get_instances_with_properties(
+        search_query if search_query.strip() else None, 
+        table_columns
+    )
+    
+    # Apply property filters
+    if filters:
+        filtered_instances = {}
+        for instance_id, instance_data in instances.items():
+            include_instance = True
+            for prop, filter_value in filters.items():
+                instance_value = instance_data.get('properties', {}).get(prop, '')
+                if filter_value.lower() not in str(instance_value).lower():
+                    include_instance = False
+                    break
+            if include_instance:
+                filtered_instances[instance_id] = instance_data
+        instances = filtered_instances
+    
+    # Apply sorting if requested
+    if sort_by and table_columns:
+        # Validate sort_by is in configured columns
+        valid_properties = [col['property'] for col in table_columns]
+        if sort_by in valid_properties:
+            instances = dict(sorted(instances.items(), 
+                key=lambda item: persistance.get_sortable_value(item[1], sort_by),
+                reverse=(sort_order == 'desc')))
+    
+    # Get enhanced filter options with property analysis
+    filter_options = persistance.get_enhanced_filter_options(table_columns)
 
     if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
         return Response(json.dumps(instances), mimetype='application/json')
     
+    # Add sort info to template context
+    sort_info = {
+        'sort_by': sort_by,
+        'sort_order': sort_order
+    }
+    
     if config["template"]["storage"]=="cedar":
-        return render_template("index.html", instances=instances, template_id=config["template"]["templateId"], search_query=search_query)
+        return render_template("index.html", 
+                             instances=instances, 
+                             template_id=config["template"]["templateId"], 
+                             search_query=search_query,
+                             table_columns=table_columns,
+                             filters=filters,
+                             filter_options=filter_options,
+                             sort_info=sort_info)
     else:
-        return render_template("index.html", instances=instances, search_query=search_query)
+        return render_template("index.html", 
+                             instances=instances, 
+                             search_query=search_query,
+                             table_columns=table_columns,
+                             filters=filters,
+                             filter_options=filter_options,
+                             sort_info=sort_info)
 
 # Login page
 @app.route("/login", methods=["GET", "POST"])
