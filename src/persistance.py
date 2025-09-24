@@ -529,28 +529,41 @@ class FilePersistance(Persistance):
         """
         Get a sortable value for the given property from instance data.
         Handles different data types appropriately for sorting.
+        Returns a tuple (sort_priority, sort_value) to ensure type-safe sorting.
         
         input:
             - instance_data: the instance data dictionary
             - sort_property: the property to extract for sorting
         output:
-            - a sortable value (string, number, or comparable type)
+            - a tuple (sort_priority, sort_value) where:
+              - sort_priority: 0 for valid data, 1 for empty data (to sort empty last)
+              - sort_value: the actual sortable value (always same type within priority)
         """
         # Get the raw property value
         property_value = instance_data.get('properties', {}).get(sort_property, '')
         
-        # Handle empty values - sort them last
+        # Handle empty values - sort them last with priority 1
         if not property_value or property_value == '':
-            return 'zzz_empty'  # This will sort empty values to the end
+            return (1, 'empty')  # Priority 1 means sort last, 'empty' is the sort value
         
         # Convert to string for consistent handling
         str_value = str(property_value).strip()
         
+        # Priority 0 means sort first (actual data)
+        sort_priority = 0
+        
         # Try to convert to number if it looks numeric
         try:
             # Check if it's a pure number
-            if str_value.replace('.', '').replace('-', '').isdigit():
-                return float(str_value)
+            if str_value.replace('.', '').replace('-', '').replace('+', '').isdigit():
+                # Return as string representation of number for consistent sorting
+                # Pad with zeros to ensure proper numerical sorting
+                try:
+                    num_value = float(str_value)
+                    # Format as padded string to maintain sort order
+                    return (sort_priority, f"{num_value:020.6f}")
+                except ValueError:
+                    pass
         except (ValueError, AttributeError):
             pass
         
@@ -572,8 +585,18 @@ class FilePersistance(Persistance):
                         # Try different date parsing approaches
                         for date_format in ['%Y-%m-%d', '%m/%d/%Y', '%Y/%m/%d', '%Y-%m-%dT%H:%M:%S']:
                             try:
-                                parsed_date = datetime.strptime(str_value[:len(date_format.replace('%H:%M:%S', ''))].split('T')[0], date_format.split('T')[0])
-                                return parsed_date.timestamp()  # Return timestamp for sorting
+                                # Handle date format extraction properly
+                                date_str = str_value
+                                if 'T' in date_format and 'T' in str_value:
+                                    # Keep the full datetime string
+                                    pass
+                                elif 'T' not in date_format and 'T' in str_value:
+                                    # Extract just the date part
+                                    date_str = str_value.split('T')[0]
+                                
+                                parsed_date = datetime.strptime(date_str, date_format)
+                                # Return as ISO format string for consistent sorting
+                                return (sort_priority, parsed_date.strftime('%Y-%m-%d %H:%M:%S'))
                             except ValueError:
                                 continue
                     except ImportError:
@@ -582,7 +605,7 @@ class FilePersistance(Persistance):
             pass
         
         # Default to case-insensitive string sorting
-        return str_value.lower()
+        return (sort_priority, str_value.lower())
     
     def get_instances(self, search_query=None):
         """
