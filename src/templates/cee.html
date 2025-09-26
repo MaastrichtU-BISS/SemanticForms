@@ -43,6 +43,30 @@
 
   <script type="text/javascript">
 
+    function loadMetadata() {
+      const cee = document.querySelector('cedar-embeddable-editor');
+      escape = function (str) {
+      return str
+        .replace(/[\b]/g, '\\b')
+        .replace(/[\f]/g, '\\f')
+        .replace(/[\n]/g, '\\n')
+        .replace(/[\r]/g, '\\r')
+        .replace(/[\t]/g, '\\t');
+    };
+
+      console.log("loading json metadata")
+      if (cee.currentMetadata.hasOwnProperty("@context")) {
+
+        {% if formData %}
+          const jsonMeta = JSON.parse(escape('{{ formData | safe }}'));
+          cee.metadata = jsonMeta;
+        {% endif %}
+
+      } else {
+        setTimeout(loadMetadata, 10)
+      }
+    }
+
     function loadConfig() {
       const cee = document.querySelector('cedar-embeddable-editor');
       cee.config = {
