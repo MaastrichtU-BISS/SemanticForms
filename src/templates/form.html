@@ -76,6 +76,23 @@
         text-align: center;
         color: #6c757d;
     }
+    
+    /* Validation styles */
+    .form-control.is-invalid, .ontology-search.is-invalid {
+        border-color: #dc3545;
+        padding-right: calc(1.5em + 0.75rem);
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+    
+    .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #dc3545;
+    }
 </style>
 
 <div class="container mt-4">
@@ -1028,6 +1045,67 @@
         }
 
         /**
+         * Validate that all required fields are filled
+         */
+        validateForm() {
+            const form = document.getElementById('dynamic-form');
+            const errors = [];
+            
+            // Clear previous validation states
+            form.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+            });
+            form.querySelectorAll('.invalid-feedback').forEach(el => {
+                el.remove();
+            });
+            
+            // Get all inputs with required attribute
+            const requiredInputs = form.querySelectorAll('[required]');
+            
+            requiredInputs.forEach(input => {
+                const path = input.getAttribute('data-path');
+                const isOntologyField = input.getAttribute('data-ontology-field') === 'true';
+                
+                // Get the label for this field
+                let label = path;
+                const labelElement = input.closest('.form-group, .card-body').querySelector('label');
+                if (labelElement) {
+                    label = labelElement.textContent.replace('*', '').trim();
+                }
+                
+                // Check if field has a value
+                let isEmpty = false;
+                
+                if (isOntologyField && input.classList.contains('ontology-search')) {
+                    // For ontology search fields, check if an ID was selected
+                    const selectedId = input.getAttribute('data-selected-id');
+                    isEmpty = !selectedId || selectedId === '';
+                } else if (input.type === 'checkbox') {
+                    isEmpty = !input.checked;
+                } else if (input.tagName === 'SELECT') {
+                    isEmpty = !input.value || input.value === '';
+                } else {
+                    isEmpty = !input.value || input.value.trim() === '';
+                }
+                
+                if (isEmpty) {
+                    errors.push(label);
+                    
+                    // Add visual feedback
+                    input.classList.add('is-invalid');
+                    
+                    // Add error message below field
+                    const feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    feedback.textContent = 'This field is required';
+                    input.parentNode.appendChild(feedback);
+                }
+            });
+            
+            return errors;
+        }
+
+        /**
          * Set nested value in object using dot notation path
          */
         setNestedValue(obj, path, value, isOntologyField, inputElement, valueType = null) {
@@ -1431,6 +1509,32 @@
 
     // Save button handler
     document.getElementById('save-btn').addEventListener('click', function() {
+        // Validate required fields before saving
+        const validationErrors = renderer.validateForm();
+        
+        if (validationErrors.length > 0) {
+            // Show error message with list of missing fields
+            const errorMessage = 'Please fill in the following mandatory fields:\n\n• ' + 
+                                validationErrors.join('\n• ');
+            alert(errorMessage);
+            
+            // Scroll to first empty required field
+            const firstEmptyRequired = document.querySelector('[required]');
+            if (firstEmptyRequired) {
+                const isOntologyField = firstEmptyRequired.getAttribute('data-ontology-field') === 'true';
+                const isEmpty = isOntologyField ? 
+                    !firstEmptyRequired.getAttribute('data-selected-id') : 
+                    !firstEmptyRequired.value || firstEmptyRequired.value.trim() === '';
+                
+                if (isEmpty) {
+                    firstEmptyRequired.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstEmptyRequired.focus();
+                }
+            }
+            
+            return;
+        }
+        
         const formData = renderer.collectFormData();
         
         const payload = {
