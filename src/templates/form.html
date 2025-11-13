@@ -110,9 +110,9 @@
 
 <script>
     // Template and instance data passed from Flask
-    const templateObject = JSON.parse({{ templateObject | tojson | safe }});
-    const instanceData = {% if formData %}JSON.parse({{ formData | tojson | safe }}){% else %}{}{% endif %};
-    const formInfo = {% if formInfo %}JSON.parse({{ formInfo | tojson | safe }}){% else %}null{% endif %};
+    const templateObject = {{ templateObject | tojson | safe }};
+    const instanceData = {% if formData %}{{ formData | tojson | safe }}{% else %}{}{% endif %};
+    const formInfo = {% if formInfo %}{{ formInfo | tojson | safe }}{% else %}null{% endif %};
     const bioportalApiKey = {{ bioportal_api_key | tojson | safe }};
 
     class FormRenderer {

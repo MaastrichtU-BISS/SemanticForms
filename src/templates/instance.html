@@ -141,8 +141,8 @@
 </style>
 
 <script>
-    const templateObject = JSON.parse({{ templateObject | tojson | safe }});
-    const instanceData = {{ jsonData | tojson }};
+    const templateObject = {{ templateObject | tojson | safe }};
+    const instanceData = {{ jsonData | tojson | safe }};
 
     class InstanceViewer {
         constructor(template, instance, containerId) {

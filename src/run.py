@@ -179,7 +179,7 @@ def cee():
     
     bioportal_key = config.get("bioportal", {}).get("api_key", "")
     return render_template("form.html", 
-                         templateObject=json.dumps(get_template()),
+                         templateObject=get_template(),
                          bioportal_api_key=bioportal_key)
 
 @app.route("/instance/<identifier>/edit")
@@ -207,9 +207,9 @@ def edit_cee(identifier: str):
         
         bioportal_key = config.get("bioportal", {}).get("api_key", "")
         return render_template("form.html",
-                               templateObject=json.dumps(get_template()),
-                               formData=json.dumps(jsonData),
-                               formInfo=json.dumps(infoData),
+                               templateObject=get_template(),
+                               formData=jsonData,
+                               formInfo=infoData,
                                bioportal_api_key=bioportal_key)
     
     return redirect("/", error="Could not load data")  
@@ -256,7 +256,13 @@ def showInstance(identifier: str):
         rdfxml = g.serialize(format='xml')
         return Response(rdfxml, mimetype='application/rdf+xml')
 
-    return render_template("instance.html", jsonData=jsonData, identifier=identifier)
+    # Get template for rendering the instance view
+    templateObject = get_template()
+    
+    return render_template("instance.html", 
+                         jsonData=jsonData, 
+                         identifier=identifier,
+                         templateObject=templateObject)
 
 
 def get_template():
