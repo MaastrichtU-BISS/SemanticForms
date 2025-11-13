@@ -1,170 +1,402 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1>Instance details</h1>
-
-{% if user %}
-<button type="button" class="btn btn-danger mb-2" data-toggle="modal"
-  data-target="#deleteModal">Delete</button>
-
-<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal"
-  aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Are you sure?</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-footer">
-        <a href="/instance/{{ identifier }}/delete">
-          <button type="button" class="btn btn-danger">Yes, I'm sure</button>
-        </a>
-      </div>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Instance Details</h1>
+        <div>
+            <a href="/instance/{{ identifier }}/edit" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            {% if user %}
+            <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            {% endif %}
+        </div>
     </div>
-  </div>
-</div>
-{% endif %}
 
-<table class="datatable">
-  <thead>
-    <tr>
-      <th scope="col">Property</th>
-      <th scope="col">Value</th>
-    </tr>
-  </thead>
-  <tbody>
-  </tbody>
-</table>
+    {% if user %}
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this instance? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <a href="/instance/{{ identifier }}/delete">
+                        <button type="button" class="btn btn-danger">Yes, Delete</button>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="instance-view"></div>
+</div>
+
+<style>
+    .section-break {
+        margin-top: 2rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .section-break h4 {
+        color: #495057;
+        font-weight: 600;
+    }
+    
+    .nested-element {
+        background-color: #f8f9fa;
+        border-left: 3px solid #dee2e6;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.25rem;
+    }
+    
+    .nested-element h5 {
+        color: #495057;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .field-group {
+        margin-bottom: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .field-label {
+        font-weight: 600;
+        color: #495057;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+    }
+    
+    .field-label::after {
+        content: ':';
+    }
+    
+    .field-description {
+        display: none;
+    }
+    
+    .field-value {
+        color: #212529;
+        line-height: 1.6;
+        flex: 1;
+    }
+    
+    .field-value.empty {
+        color: #6c757d;
+        font-style: italic;
+    }
+    
+    .field-value ul {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+    
+    .field-value ul li {
+        margin-bottom: 0.25rem;
+    }
+    
+    .field-value a {
+        color: #007bff;
+        text-decoration: none;
+    }
+    
+    .field-value a:hover {
+        text-decoration: underline;
+    }
+    
+    .array-items .array-item {
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-left: 2px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .array-items .array-item:last-child {
+        border-bottom: none;
+    }
+    
+    .array-items .array-item h6 {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+</style>
 
 <script>
-  var instance = {{ jsonData | tojson }};
-  var table = document.querySelector('.datatable tbody');
-  function process_instance(instance, table, indent=0) {
-    for (var key in instance) {
-      // if key is an empty list or dictionary, ignore
-      if (instance[key].length == 0 || Object.keys(instance[key]).length == 0) {
-        continue;
-      }
+    const templateObject = JSON.parse({{ templateObject | tojson | safe }});
+    const instanceData = {{ jsonData | tojson }};
 
-      //if value is a dictionary which contains '@value', but the value is undefined, ignore
-      if (typeof instance[key] == 'object') {
-        if ("@value" in instance[key]) {
-          if (instance[key]['@value'] == undefined) {
-            continue;
-          }
-        }
-      }
-
-      //ignore @context and @id
-      if (key == '@context' || key == '@id') {
-        continue;
-      }
-
-      var tr = document.createElement('tr');
-      var td1 = document.createElement('td');
-      var td2 = document.createElement('td');
-      // add a margin left to the key to indicate the level of nesting
-      td1.style.paddingLeft = indent*5 + 'px';
-      td1.textContent = key;
-
-      //if key is a list, loop over items
-      if (Array.isArray(instance[key])) {
-        // inspect whether the list is a sub-form, if so, recurse function
-        if ("@context" in instance[key][0]) {
-          var tr = document.createElement('tr');
-          var td1 = document.createElement('td');
-          var td2 = document.createElement('td');
-          td1.textContent = key + ":";
-          td1.style.fontWeight = 'bold';
-          tr.appendChild(td1);
-          tr.appendChild(td2);
-          table.appendChild(tr);
-          for (element in instance[key]) {
-            var tr = document.createElement('tr');
-            var td1 = document.createElement('td');
-            var td2 = document.createElement('td');
-            td1.textContent = element + ":";
-            td1.style.fontWeight = 'bold';
-            td1.style.paddingLeft = ((indent*5) + 5) + 'px';
-            tr.appendChild(td1);
-            tr.appendChild(td2);
-            table.appendChild(tr);
-            process_instance(instance[key][element], table, indent + 4);
-          }
+    class InstanceViewer {
+        constructor(template, instance, containerId) {
+            this.template = template;
+            this.instance = instance;
+            this.container = document.getElementById(containerId);
         }
 
-        // inspect whether the list contains a key "rdfs:label"
-        if (typeof instance[key][0] == 'object' && "rdfs:label" in instance[key][0]) {
-          var tr = document.createElement('tr');
-          var td1 = document.createElement('td');
-          var td2 = document.createElement('td');
-          td1.textContent = key + ":";
-          tr.appendChild(td1);
-          tr.appendChild(td2);
-          table.appendChild(tr);
-          var ul = document.createElement('ul');
-          for (var i = 0; i < instance[key].length; i++) {
-            var li = document.createElement('li');
-            // check if there is an @id label, if so, make it a HTML link
-            if ("@id" in instance[key][i]) {
-              var a = document.createElement('a');
-              a.href = instance[key][i]["@id"];
-              a.textContent = instance[key][i]["rdfs:label"];
-              li.appendChild(a);
-            } else {
-              li.textContent = instance[key][i]["rdfs:label"];
+        render() {
+            const properties = this.template.properties || {};
+            const order = this.template._ui?.order || Object.keys(properties);
+
+            for (const fieldName of order) {
+                const fieldSchema = properties[fieldName];
+                if (!fieldSchema || fieldName.startsWith('@')) continue;
+
+                const fieldValue = this.instance[fieldName];
+                const fieldElement = this.renderField(fieldName, fieldSchema, fieldValue);
+                
+                if (fieldElement) {
+                    this.container.appendChild(fieldElement);
+                }
             }
-            ul.appendChild(li);
-          }
-          td2.appendChild(ul);
         }
 
-        // inspect whether the @value objects in the list have an actual value, otherwise ignore
-        if (instance[key].length > 0 && instance[key][0]["@value"] == undefined) {
-          continue;
+        renderField(fieldName, fieldSchema, value) {
+            const label = this.template._ui?.propertyLabels?.[fieldName] || fieldSchema['schema:name'] || fieldName;
+            const description = this.template._ui?.propertyDescriptions?.[fieldName] || fieldSchema['schema:description'];
+            
+            const fieldType = fieldSchema['@type'];
+            const isStaticField = fieldType === 'https://schema.metadatacenter.org/core/StaticTemplateField';
+            const isCedarElement = fieldType === 'https://schema.metadatacenter.org/core/TemplateElement';
+            const isCedarField = fieldType === 'https://schema.metadatacenter.org/core/TemplateField';
+            const isArray = fieldSchema.type === 'array';
+
+            // Handle static fields (section breaks)
+            if (isStaticField) {
+                const inputType = fieldSchema._ui?.inputType;
+                if (inputType === 'section-break') {
+                    const section = document.createElement('div');
+                    section.className = 'section-break';
+                    
+                    const heading = document.createElement('h4');
+                    heading.textContent = label;
+                    section.appendChild(heading);
+                    
+                    return section;
+                }
+                return null;
+            }
+
+            // Handle array fields
+            if (isArray) {
+                return this.renderArrayField(fieldName, fieldSchema, value, label, description);
+            }
+
+            // Handle Cedar Elements (nested objects)
+            if (isCedarElement) {
+                return this.renderNestedElement(fieldName, fieldSchema, value, label, description);
+            }
+
+            // Handle Cedar Fields
+            if (isCedarField) {
+                return this.renderSimpleField(fieldName, fieldSchema, value, label, description);
+            }
+
+            return null;
         }
 
-        var ul = document.createElement('ul');
-        for (var i = 0; i < instance[key].length; i++) {
-          var li = document.createElement('li');
-          li.textContent = instance[key][i]["@value"];
-          ul.appendChild(li);
-        }
-        td2.appendChild(ul);
-      } else {
-        if ("@context" in instance[key]) {
-          var tr = document.createElement('tr');
-          var td1 = document.createElement('td');
-          var td2 = document.createElement('td');
-          td1.textContent = key + ":";
-          td1.style.fontWeight = 'bold';
-          tr.appendChild(td1);
-          tr.appendChild(td2);
-          table.appendChild(tr);
-          process_instance(instance[key], table, indent + 4);
-          continue;
+        renderSimpleField(fieldName, fieldSchema, value, label, description) {
+            // Skip if value is empty
+            if (!value || (typeof value === 'object' && (!value['@value'] || value['@value'] === null) && !value['@id'])) {
+                return null;
+            }
+
+            const fieldGroup = document.createElement('div');
+            fieldGroup.className = 'field-group';
+
+            const labelElement = document.createElement('div');
+            labelElement.className = 'field-label';
+            labelElement.textContent = label;
+            fieldGroup.appendChild(labelElement);
+
+            const valueElement = document.createElement('div');
+            valueElement.className = 'field-value';
+
+            // Handle ontology fields (with @id)
+            if (value['@id']) {
+                const link = document.createElement('a');
+                link.href = value['@id'];
+                link.target = '_blank';
+                const labelValue = value['rdfs:label'];
+                link.textContent = (typeof labelValue === 'object' && labelValue['@value']) ? labelValue['@value'] : labelValue || value['@id'];
+                valueElement.appendChild(link);
+            } else {
+                // Regular value field
+                const displayValue = value['@value'];
+                valueElement.textContent = displayValue !== null && displayValue !== undefined ? displayValue : '—';
+            }
+
+            fieldGroup.appendChild(valueElement);
+            return fieldGroup;
         }
 
-        //determine whether the key contains a dict or a value
-        if (typeof instance[key] == 'object') {
-          td2.textContent = instance[key]["@value"];
-          if ("rdfs:label" in instance[key]) {
-            td2.textContent += instance[key]["rdfs:label"];
-          }
-        } else {
-          td2.textContent = instance[key];
-        }
-      }
+        renderArrayField(fieldName, fieldSchema, value, label, description) {
+            const items = Array.isArray(value) ? value : [];
+            
+            // Skip empty arrays
+            if (items.length === 0) {
+                return null;
+            }
 
-      // if there are newline characters in the value, replace them with HTML line breaks
-      td2.textContent = td2.textContent.replace(/(?:\r\n|\r|\n)/g, '<br>');
-      td2.style.wordWrap = 'break-word';
-      tr.appendChild(td1);
-      tr.appendChild(td2);
-      table.appendChild(tr);
-    }    
-  }
-  process_instance(instance, table);
+            // Check if this is a checkbox group
+            const itemSchema = fieldSchema.items;
+            const isCheckboxGroup = itemSchema?._ui?.inputType === 'checkbox' || itemSchema?._ui?.inputType === 'radio';
+            const hasLiterals = itemSchema?._valueConstraints?.literals?.length > 0;
+
+            const fieldGroup = document.createElement('div');
+            fieldGroup.className = 'field-group';
+
+            const labelElement = document.createElement('div');
+            labelElement.className = 'field-label';
+            labelElement.textContent = label;
+            fieldGroup.appendChild(labelElement);
+
+            // Render checkbox/radio groups as comma-separated values
+            if (isCheckboxGroup && hasLiterals) {
+                const valueElement = document.createElement('div');
+                valueElement.className = 'field-value';
+                
+                const selectedValues = items.map(item => item['@value']).filter(v => v);
+                valueElement.textContent = selectedValues.length > 0 ? selectedValues.join(', ') : '—';
+                
+                fieldGroup.appendChild(valueElement);
+            } else {
+                // Render as array items
+                const arrayContainer = document.createElement('div');
+                arrayContainer.className = 'array-items';
+
+                items.forEach((item, index) => {
+                    const itemElement = this.renderArrayItem(fieldName, itemSchema, item, index);
+                    if (itemElement) {
+                        arrayContainer.appendChild(itemElement);
+                    }
+                });
+
+                fieldGroup.appendChild(arrayContainer);
+            }
+
+            return fieldGroup;
+        }
+
+        renderArrayItem(fieldName, itemSchema, value, index) {
+            const itemType = itemSchema['@type'];
+            const isCedarField = itemType === 'https://schema.metadatacenter.org/core/TemplateField';
+
+            // For Cedar TemplateFields, render as simple value
+            if (isCedarField) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'array-item';
+
+                const itemHeader = document.createElement('h6');
+                itemHeader.textContent = `Item ${index + 1}`;
+                itemDiv.appendChild(itemHeader);
+
+                const valueElement = document.createElement('div');
+                valueElement.className = 'field-value';
+
+                // Handle ontology fields
+                if (value && value['@id']) {
+                    const link = document.createElement('a');
+                    link.href = value['@id'];
+                    link.target = '_blank';
+                    const labelValue = value['rdfs:label'];
+                    link.textContent = (typeof labelValue === 'object' && labelValue['@value']) ? labelValue['@value'] : labelValue || value['@id'];
+                    valueElement.appendChild(link);
+                } else if (value && value['@value'] !== null && value['@value'] !== undefined) {
+                    valueElement.textContent = value['@value'];
+                } else {
+                    return null; // Skip empty items
+                }
+
+                itemDiv.appendChild(valueElement);
+                return itemDiv;
+            }
+
+            // For objects with properties
+            if (itemSchema.properties) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'array-item';
+
+                const itemHeader = document.createElement('h6');
+                itemHeader.textContent = `Item ${index + 1}`;
+                itemDiv.appendChild(itemHeader);
+
+                const properties = itemSchema.properties || {};
+                const order = itemSchema._ui?.order || Object.keys(properties);
+
+                for (const key of order) {
+                    const fieldSchema = properties[key];
+                    if (!fieldSchema || key.startsWith('@')) continue;
+
+                    const currentValue = value && value[key];
+                    const fieldLabel = itemSchema._ui?.propertyLabels?.[key] || fieldSchema['schema:name'] || key;
+                    const fieldDesc = itemSchema._ui?.propertyDescriptions?.[key] || fieldSchema['schema:description'];
+
+                    const fieldElement = this.renderSimpleField(key, fieldSchema, currentValue, fieldLabel, fieldDesc);
+                    if (fieldElement) {
+                        itemDiv.appendChild(fieldElement);
+                    }
+                }
+
+                return itemDiv;
+            }
+
+            return null;
+        }
+
+        renderNestedElement(fieldName, fieldSchema, value, label, description) {
+            // Skip if no value
+            if (!value) {
+                return null;
+            }
+
+            const elementDiv = document.createElement('div');
+            elementDiv.className = 'nested-element';
+
+            const titleElement = document.createElement('h5');
+            titleElement.textContent = label;
+            elementDiv.appendChild(titleElement);
+
+            const properties = fieldSchema.properties || {};
+            const order = fieldSchema._ui?.order || Object.keys(properties);
+
+            for (const key of order) {
+                const propertySchema = properties[key];
+                if (!propertySchema || key.startsWith('@')) continue;
+
+                const propertyValue = value[key];
+                const propertyLabel = fieldSchema._ui?.propertyLabels?.[key] || propertySchema['schema:name'] || key;
+                const propertyDesc = fieldSchema._ui?.propertyDescriptions?.[key] || propertySchema['schema:description'];
+
+                const fieldElement = this.renderField(key, propertySchema, propertyValue);
+                if (fieldElement) {
+                    elementDiv.appendChild(fieldElement);
+                }
+            }
+
+            return elementDiv;
+        }
+    }
+
+    // Initialize and render
+    const viewer = new InstanceViewer(templateObject, instanceData, 'instance-view');
+    viewer.render();
 </script>
 {% endblock %}
