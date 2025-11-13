@@ -250,15 +250,15 @@
         renderArrayField(fieldName, fieldSchema, value, label, description) {
             const items = Array.isArray(value) ? value : [];
             
-            // Skip empty arrays
-            if (items.length === 0) {
-                return null;
-            }
-
             // Check if this is a checkbox group
             const itemSchema = fieldSchema.items;
             const isCheckboxGroup = itemSchema?._ui?.inputType === 'checkbox' || itemSchema?._ui?.inputType === 'radio';
             const hasLiterals = itemSchema?._valueConstraints?.literals?.length > 0;
+            
+            // Skip empty arrays only if not a checkbox group (checkbox groups should show even if empty)
+            if (items.length === 0 && !isCheckboxGroup) {
+                return null;
+            }
 
             const fieldGroup = document.createElement('div');
             fieldGroup.className = 'field-group';
