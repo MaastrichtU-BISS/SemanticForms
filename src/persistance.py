@@ -126,22 +126,51 @@ class FilePersistance(Persistance):
         input:
             - filename: the path of the file to parse
         """
-        with open(filename, 'r') as f:
-            metadata = json.load(f)
-            id = metadata["@id"].replace(self.__base_url + "/", "")
-            title_found = self.__find_title_recursively(metadata, self.__title_uri.split("|"))
-            
-            # Extract searchable content from all fields
-            searchable_content = self.__extract_searchable_content(metadata)
-            
-            # Store complete metadata for property extraction
-            self.__cached_items[id] = {
-                "title": title_found,
-                "filename": filename,
-                "time": metadata['pav:createdOn'],
-                "searchable_content": searchable_content,
-                "metadata": metadata
-            }
+        try:
+            with open(filename, 'r') as f:
+                metadata = json.load(f)
+                
+                # Extract ID - handle different URL formats
+                full_id = metadata.get("@id", "")
+                if not full_id:
+                    print(f"Warning: No @id found in {filename}, skipping")
+                    return
+                
+                # Try to extract ID from URL
+                # Handle both "http://localhost/instance/ID" and "http://localhost/ID"
+                id = full_id
+                if self.__base_url in full_id:
+                    id = full_id.replace(self.__base_url + "/", "")
+                else:
+                    # Fallback: extract everything after the last /
+                    id = full_id.split("/")[-1]
+                
+                title_found = self.__find_title_recursively(metadata, self.__title_uri.split("|"))
+                
+                # Extract searchable content from all fields
+                searchable_content = self.__extract_searchable_content(metadata)
+                
+                # Check if pav:createdOn exists
+                created_on = metadata.get('pav:createdOn', None)
+                if not created_on:
+                    print(f"Warning: No pav:createdOn found in {filename}, using empty string")
+                    created_on = ""
+                
+                # Store complete metadata for property extraction
+                self.__cached_items[id] = {
+                    "title": title_found,
+                    "filename": filename,
+                    "time": created_on,
+                    "searchable_content": searchable_content,
+                    "metadata": metadata
+                }
+                
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON in {filename}: {e}")
+        except KeyError as e:
+            print(f"Missing required field in {filename}: {e}")
+        except Exception as e:
+            print(f"Error processing {filename}: {e}")
     
     def instance_exists(self, id: str) -> bool:
         """
@@ -684,7 +713,7 @@ class FilePersistance(Persistance):
             id = f"{self.__base_url}/{session_id}"
             data["@id"] = id
         else:
-            session_id = data["@id"].replace(self.__base_url + "/", "")
+            session_id = data["@id"].split("/")[-1]
 
         filename = os.path.join(self.__folder_location, f"{session_id}.jsonld")
         with open(filename, 'w') as f:

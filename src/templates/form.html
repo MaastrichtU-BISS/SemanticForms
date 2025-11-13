@@ -1,0 +1,1497 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .ontology-field-container {
+        position: relative;
+    }
+    
+    .ontology-autocomplete {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ced4da;
+        border-top: none;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .ontology-autocomplete-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .ontology-autocomplete-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .ontology-autocomplete-item.active {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .ontology-item-label {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .ontology-autocomplete-item.active .ontology-item-label {
+        color: white;
+    }
+    
+    .ontology-item-ontology {
+        font-size: 0.85em;
+        color: #6c757d;
+        margin-left: 8px;
+    }
+    
+    .ontology-autocomplete-item.active .ontology-item-ontology {
+        color: rgba(255,255,255,0.8);
+    }
+    
+    .ontology-item-id {
+        font-size: 0.75em;
+        color: #6c757d;
+        display: block;
+        margin-top: 2px;
+    }
+    
+    .ontology-autocomplete-item.active .ontology-item-id {
+        color: rgba(255,255,255,0.7);
+    }
+    
+    .ontology-loading {
+        padding: 10px 15px;
+        text-align: center;
+        color: #6c757d;
+    }
+    
+    .ontology-no-results {
+        padding: 10px 15px;
+        text-align: center;
+        color: #6c757d;
+    }
+</style>
+
+<div class="container mt-4">
+    <h1>{{ 'Edit Form' if formData else 'Add New Form' }}</h1>
+    
+    <div id="form-container" class="mt-4">
+        <!-- Form will be dynamically generated here -->
+    </div>
+
+    <div class="mt-4">
+        <button type="button" id="save-btn" class="btn btn-primary">Save</button>
+        <a href="/" class="btn btn-secondary">Cancel</a>
+    </div>
+</div>
+
+<script>
+    // Template and instance data passed from Flask
+    const templateObject = JSON.parse({{ templateObject | tojson | safe }});
+    const instanceData = {% if formData %}JSON.parse({{ formData | tojson | safe }}){% else %}{}{% endif %};
+    const formInfo = {% if formInfo %}JSON.parse({{ formInfo | tojson | safe }}){% else %}null{% endif %};
+    const bioportalApiKey = {{ bioportal_api_key | tojson | safe }};
+
+    class FormRenderer {
+        constructor(template, instance) {
+            this.template = template;
+            this.instance = instance;
+            this.formData = {};
+        }
+
+        /**
+         * Initialize the form data structure from instance or create empty structure
+         */
+        initializeFormData() {
+            if (Object.keys(this.instance).length > 0) {
+                // Load existing instance data
+                this.formData = JSON.parse(JSON.stringify(this.instance));
+            } else {
+                // Create empty structure based on template
+                this.formData = {
+                    "@context": this.template["@context"] || {}
+                };
+            }
+        }
+
+        /**
+         * Render the complete form
+         */
+        render() {
+            this.initializeFormData();
+            const container = document.getElementById('form-container');
+            container.innerHTML = '';
+
+            const form = document.createElement('form');
+            form.id = 'dynamic-form';
+            form.className = 'needs-validation';
+            form.noValidate = true;
+
+            // Get properties from template (excluding metadata fields)
+            const properties = this.template.properties || {};
+            
+            console.log('Template properties:', properties);
+            console.log('Template _ui:', this.template._ui);
+            
+            // Use _ui.order if available for field ordering
+            const fieldOrder = this.template._ui?.order || Object.keys(properties);
+            
+            console.log('Field order:', fieldOrder);
+            
+            let fieldCount = 0;
+            for (const key of fieldOrder) {
+                const value = properties[key];
+                if (!value) {
+                    console.log(`Skipping ${key}: no value`);
+                    continue;
+                }
+                
+                // Skip internal fields
+                if (key.startsWith('@') || key.startsWith('pav:') || 
+                    key.startsWith('schema:') || key.startsWith('oslc:')) {
+                    console.log(`Skipping ${key}: internal field`);
+                    continue;
+                }
+
+                console.log(`Rendering field: ${key}`, value);
+                const fieldElement = this.renderField(key, value, this.formData[key]);
+                if (fieldElement) {
+                    form.appendChild(fieldElement);
+                    fieldCount++;
+                } else {
+                    console.log(`No field element created for: ${key}`);
+                }
+            }
+
+            console.log(`Total fields rendered: ${fieldCount}`);
+            container.appendChild(form);
+        }
+
+        /**
+         * Render a single field based on its type
+         */
+        renderField(fieldName, fieldSchema, fieldValue) {
+            // Get label from _ui.propertyLabels or use fieldName
+            const label = this.template._ui?.propertyLabels?.[fieldName] || fieldSchema['schema:name'] || fieldName;
+            const description = this.template._ui?.propertyDescriptions?.[fieldName] || fieldSchema['schema:description'] || fieldSchema.description || '';
+            
+            // Check field type
+            const fieldType = fieldSchema['@type'];
+            const isCedarElement = fieldType === 'https://schema.metadatacenter.org/core/TemplateElement';
+            const isCedarField = fieldType === 'https://schema.metadatacenter.org/core/TemplateField';
+            const isStaticField = fieldType === 'https://schema.metadatacenter.org/core/StaticTemplateField';
+            
+            console.log(`Field ${fieldName}: @type=${fieldType}, label=${label}, schema.type=${fieldSchema.type}`);
+            
+            // Handle static fields (section breaks, headings, etc.)
+            if (isStaticField) {
+                const inputType = fieldSchema._ui?.inputType;
+                if (inputType === 'section-break') {
+                    // Render as a section heading
+                    const section = document.createElement('div');
+                    section.className = 'section-break mt-4 mb-3';
+                    
+                    const heading = document.createElement('h4');
+                    heading.className = 'border-bottom pb-2';
+                    heading.textContent = label;
+                    section.appendChild(heading);
+                    
+                    if (description && description !== 'Help Text') {
+                        const desc = document.createElement('p');
+                        desc.className = 'text-muted';
+                        desc.textContent = description;
+                        section.appendChild(desc);
+                    }
+                    
+                    return section;
+                }
+                // Other static field types can be added here
+                return null;
+            }
+            
+            // Handle array fields (check before TemplateElement since arrays don't have @type)
+            if (fieldSchema.type === 'array') {
+                const fieldGroup = document.createElement('div');
+                fieldGroup.className = 'card mb-3';
+                
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
+                const title = document.createElement('h5');
+                title.className = 'card-title';
+                title.textContent = label;
+                cardBody.appendChild(title);
+                
+                if (description && description !== 'Help Text') {
+                    const desc = document.createElement('p');
+                    desc.className = 'text-muted';
+                    desc.textContent = description;
+                    cardBody.appendChild(desc);
+                }
+
+                const arrayFields = this.renderArray(fieldName, fieldSchema, fieldValue);
+                cardBody.appendChild(arrayFields);
+                
+                fieldGroup.appendChild(cardBody);
+                return fieldGroup;
+            }
+            
+            if (isCedarElement) {
+                // Render as a card with nested fields
+                const fieldGroup = document.createElement('div');
+                fieldGroup.className = 'card mb-3';
+                
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
+                const title = document.createElement('h5');
+                title.className = 'card-title';
+                title.textContent = label;
+                cardBody.appendChild(title);
+                
+                if (description) {
+                    const desc = document.createElement('p');
+                    desc.className = 'text-muted';
+                    desc.textContent = description;
+                    cardBody.appendChild(desc);
+                }
+
+                const nestedFields = this.renderNestedObject(fieldName, fieldSchema, fieldValue);
+                cardBody.appendChild(nestedFields);
+                
+                fieldGroup.appendChild(cardBody);
+                return fieldGroup;
+            } else if (isCedarField) {
+                // Render as a simple form field
+                const fieldGroup = document.createElement('div');
+                fieldGroup.className = 'form-group mb-3';
+                
+                const labelElement = document.createElement('label');
+                labelElement.textContent = label;
+                labelElement.className = 'font-weight-bold';
+                
+                // Add required indicator
+                if (fieldSchema._valueConstraints?.requiredValue) {
+                    const required = document.createElement('span');
+                    required.className = 'text-danger';
+                    required.textContent = ' *';
+                    labelElement.appendChild(required);
+                }
+                
+                fieldGroup.appendChild(labelElement);
+                
+                if (description) {
+                    const desc = document.createElement('small');
+                    desc.className = 'form-text text-muted d-block mb-2';
+                    desc.textContent = description;
+                    fieldGroup.appendChild(desc);
+                }
+                
+                const input = this.renderInput(fieldName, fieldSchema, fieldValue);
+                fieldGroup.appendChild(input);
+                
+                return fieldGroup;
+            }
+            
+            return null;
+        }
+
+        /**
+         * Render nested object fields
+         */
+        renderNestedObject(parentName, schema, value) {
+            const container = document.createElement('div');
+            container.className = 'nested-object ml-3';
+
+            const properties = schema.properties || {};
+            const currentValue = value || {};
+
+            // Initialize nested structure if doesn't exist
+            if (!this.formData[parentName]) {
+                this.formData[parentName] = {
+                    "@context": schema["@context"] || {}
+                };
+            }
+
+            // Get field order from element's _ui
+            const fieldOrder = schema._ui?.order || Object.keys(properties);
+
+            for (const key of fieldOrder) {
+                const fieldSchema = properties[key];
+                if (!fieldSchema) continue;
+                
+                // Skip internal fields
+                if (key.startsWith('@')) {
+                    continue;
+                }
+
+                // Check if this is a nested element or field
+                const fieldType = fieldSchema['@type'];
+                const isNestedElement = fieldType === 'https://schema.metadatacenter.org/core/TemplateElement';
+                const isField = fieldType === 'https://schema.metadatacenter.org/core/TemplateField';
+                
+                if (isNestedElement) {
+                    // Recursively render nested element as a sub-card
+                    const nestedLabel = schema._ui?.propertyLabels?.[key] || fieldSchema['schema:name'] || key;
+                    const nestedDesc = schema._ui?.propertyDescriptions?.[key] || fieldSchema['schema:description'] || '';
+                    
+                    const nestedCard = document.createElement('div');
+                    nestedCard.className = 'card mb-3';
+                    
+                    const cardBody = document.createElement('div');
+                    cardBody.className = 'card-body';
+                    
+                    const title = document.createElement('h6');
+                    title.className = 'card-subtitle mb-2 text-muted';
+                    title.textContent = nestedLabel;
+                    cardBody.appendChild(title);
+                    
+                    if (nestedDesc && nestedDesc !== 'Help Text') {
+                        const desc = document.createElement('p');
+                        desc.className = 'small text-muted';
+                        desc.textContent = nestedDesc;
+                        cardBody.appendChild(desc);
+                    }
+                    
+                    const deepNested = this.renderNestedObject(`${parentName}.${key}`, fieldSchema, currentValue[key]);
+                    cardBody.appendChild(deepNested);
+                    
+                    nestedCard.appendChild(cardBody);
+                    container.appendChild(nestedCard);
+                } else if (isField) {
+                    // Render as a form field
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'form-group mb-3';
+
+                    const label = document.createElement('label');
+                    const fieldLabel = schema._ui?.propertyLabels?.[key] || fieldSchema['schema:name'] || key;
+                    label.textContent = fieldLabel;
+                    label.className = 'font-weight-bold';
+                    
+                    // Add required indicator
+                    if (fieldSchema._valueConstraints?.requiredValue) {
+                        const required = document.createElement('span');
+                        required.className = 'text-danger';
+                        required.textContent = ' *';
+                        label.appendChild(required);
+                    }
+                    
+                    fieldDiv.appendChild(label);
+                    
+                    // Add description if available
+                    const fieldDesc = schema._ui?.propertyDescriptions?.[key] || fieldSchema['schema:description'];
+                    if (fieldDesc && fieldDesc !== 'Help Text') {
+                        const desc = document.createElement('small');
+                        desc.className = 'form-text text-muted d-block mb-2';
+                        desc.textContent = fieldDesc;
+                        fieldDiv.appendChild(desc);
+                    }
+
+                    const input = this.renderInput(`${parentName}.${key}`, fieldSchema, currentValue[key]);
+                    fieldDiv.appendChild(input);
+
+                    container.appendChild(fieldDiv);
+                }
+            }
+
+            return container;
+        }
+
+        /**
+         * Render array fields (repeatable)
+         */
+        renderArray(fieldName, schema, value) {
+            const container = document.createElement('div');
+            container.className = 'array-container';
+            container.setAttribute('data-field', fieldName);
+
+            const items = Array.isArray(value) ? value : [];
+            
+            // Initialize array in form data
+            if (!this.formData[fieldName]) {
+                this.formData[fieldName] = [];
+            }
+
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = 'array-items';
+
+            items.forEach((item, index) => {
+                const itemElement = this.renderArrayItem(fieldName, schema.items, item, index);
+                itemsContainer.appendChild(itemElement);
+            });
+
+            container.appendChild(itemsContainer);
+
+            // Add button
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'btn btn-sm btn-secondary mt-2';
+            addButton.textContent = '+ Add Item';
+            addButton.onclick = () => this.addArrayItem(fieldName, schema.items, itemsContainer);
+            container.appendChild(addButton);
+
+            return container;
+        }
+
+        /**
+         * Render a single array item
+         */
+        renderArrayItem(fieldName, itemSchema, value, index) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'array-item card mb-2';
+            
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            
+            // Add item number header
+            const itemHeader = document.createElement('h6');
+            itemHeader.className = 'text-muted mb-3';
+            itemHeader.textContent = `Item ${index + 1}`;
+            cardBody.appendChild(itemHeader);
+
+            // Check if this is a TemplateElement (object with @type)
+            const isTemplateElement = itemSchema['@type'] === 'https://schema.metadatacenter.org/core/TemplateElement';
+            
+            // If item is object with properties
+            if (itemSchema.type === 'object' || itemSchema.properties) {
+                const properties = itemSchema.properties || {};
+                const fieldOrder = itemSchema._ui?.order || Object.keys(properties);
+                
+                for (const key of fieldOrder) {
+                    const fieldSchema = properties[key];
+                    if (!fieldSchema || key.startsWith('@')) continue;
+
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'form-group mb-2';
+
+                    const label = document.createElement('label');
+                    const fieldLabel = itemSchema._ui?.propertyLabels?.[key] || fieldSchema['schema:name'] || key;
+                    label.textContent = fieldLabel;
+                    label.className = 'font-weight-bold';
+                    
+                    // Add required indicator
+                    if (fieldSchema._valueConstraints?.requiredValue) {
+                        const required = document.createElement('span');
+                        required.className = 'text-danger';
+                        required.textContent = ' *';
+                        label.appendChild(required);
+                    }
+                    
+                    fieldDiv.appendChild(label);
+                    
+                    // Add description
+                    const fieldDesc = itemSchema._ui?.propertyDescriptions?.[key] || fieldSchema['schema:description'];
+                    if (fieldDesc && fieldDesc !== 'Help Text') {
+                        const desc = document.createElement('small');
+                        desc.className = 'form-text text-muted d-block mb-2';
+                        desc.textContent = fieldDesc;
+                        fieldDiv.appendChild(desc);
+                    }
+
+                    const currentValue = value && value[key];
+                    const input = this.renderInput(`${fieldName}[${index}].${key}`, fieldSchema, currentValue);
+                    fieldDiv.appendChild(input);
+
+                    cardBody.appendChild(fieldDiv);
+                }
+            } else {
+                // Simple array item
+                const input = this.renderInput(`${fieldName}[${index}]`, itemSchema, value);
+                cardBody.appendChild(input);
+            }
+
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-danger mt-2';
+            removeBtn.textContent = 'Remove';
+            removeBtn.onclick = () => {
+                itemDiv.remove();
+                this.updateArrayIndices(fieldName);
+            };
+            cardBody.appendChild(removeBtn);
+
+            itemDiv.appendChild(cardBody);
+            return itemDiv;
+        }
+
+        /**
+         * Add new array item
+         */
+        addArrayItem(fieldName, itemSchema, container) {
+            const index = container.children.length;
+            const itemElement = this.renderArrayItem(fieldName, itemSchema, null, index);
+            container.appendChild(itemElement);
+            
+            // Initialize autocomplete for any ontology search fields in the new item
+            const ontologyInputs = itemElement.querySelectorAll('.ontology-search');
+            ontologyInputs.forEach(input => {
+                if (window.ontologyAutocomplete) {
+                    window.ontologyAutocomplete.init(input);
+                }
+            });
+        }
+
+        /**
+         * Update array indices after removal
+         */
+        updateArrayIndices(fieldName) {
+            const container = document.querySelector(`[data-field="${fieldName}"] .array-items`);
+            const items = container.children;
+            
+            Array.from(items).forEach((item, index) => {
+                // Update all input names/ids within this item
+                const inputs = item.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    const name = input.name;
+                    if (name) {
+                        input.name = name.replace(/\[\d+\]/, `[${index}]`);
+                    }
+                });
+            });
+        }
+
+        /**
+         * Render a simple input field
+         */
+        renderInput(fieldPath, schema, value) {
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'form-group';
+
+            let input;
+            const inputType = this.getInputType(schema);
+            const isRequired = schema._valueConstraints?.requiredValue || false;
+            const constraints = schema._valueConstraints || {};
+            
+            // Check for ontology classes (BioPortal terms)
+            const ontologyClasses = constraints.classes || [];
+            const hasOntologyClasses = ontologyClasses.length > 0;
+            
+            // Check for ontology branches
+            const branches = constraints.branches || [];
+            const hasBranches = branches.length > 0;
+            
+            // Check for ontologies (general ontology search)
+            const ontologies = constraints.ontologies || [];
+            const hasOntologies = ontologies.length > 0;
+            
+            // Check for value sets
+            const valueSets = constraints.valueSets || [];
+            const hasValueSets = valueSets.length > 0;
+            
+            // Check for literals (enum values)
+            const literals = constraints.literals || [];
+            const hasLiterals = literals.length > 0;
+            const multipleChoice = constraints.multipleChoice || false;
+            
+            // Check if field schema has @id property (indicates it's an ontology field even without explicit constraints)
+            const hasIdProperty = schema.properties && schema.properties['@id'];
+            
+            // Check if field has @type (uri format) and rdfs:label but no @value (Cedar ontology field pattern)
+            const hasTypeAndLabel = schema.properties && schema.properties['@type'] && schema.properties['rdfs:label'] && !schema.properties['@value'];
+            
+            const isOntologyField = hasOntologyClasses || hasBranches || hasOntologies || hasValueSets || hasIdProperty || hasTypeAndLabel;
+            
+            console.log(`renderInput for ${fieldPath}: inputType=${inputType}, isOntologyField=${isOntologyField}, hasIdProperty=${hasIdProperty}, hasTypeAndLabel=${hasTypeAndLabel}, hasLiterals=${hasLiterals}, multipleChoice=${multipleChoice}`);
+
+            if (inputType === 'select' || isOntologyField || hasLiterals) {
+                // Handle multiple choice with checkboxes
+                if (multipleChoice && hasLiterals) {
+                    const container = document.createElement('div');
+                    container.className = 'form-check-group';
+                    
+                    literals.forEach((literal, index) => {
+                        const checkboxDiv = document.createElement('div');
+                        checkboxDiv.className = 'form-check';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'form-check-input';
+                        checkbox.id = `${fieldPath}_${index}`;
+                        checkbox.value = literal.label || literal;
+                        checkbox.name = fieldPath;
+                        
+                        // Check if this option is selected by default or in existing value
+                        if (literal.selectedByDefault || (value && Array.isArray(value) && value.some(v => v['@value'] === checkbox.value))) {
+                            checkbox.checked = true;
+                        }
+                        
+                        const label = document.createElement('label');
+                        label.className = 'form-check-label';
+                        label.htmlFor = checkbox.id;
+                        label.textContent = literal.label || literal;
+                        
+                        checkboxDiv.appendChild(checkbox);
+                        checkboxDiv.appendChild(label);
+                        container.appendChild(checkboxDiv);
+                    });
+                    
+                    input = container;
+                } else if (isOntologyField && !hasLiterals) {
+                    // Ontology field - render autocomplete/search input
+                    const container = document.createElement('div');
+                    container.className = 'ontology-field-container';
+                    
+                    const searchInput = document.createElement('input');
+                    searchInput.type = 'text';
+                    searchInput.className = 'form-control ontology-search';
+                    searchInput.placeholder = this.getOntologyPlaceholder(constraints);
+                    
+                    // Store ontology metadata
+                    searchInput.setAttribute('data-ontology-field', 'true');
+                    if (hasOntologyClasses) {
+                        searchInput.setAttribute('data-classes', JSON.stringify(ontologyClasses));
+                    }
+                    if (hasBranches) {
+                        searchInput.setAttribute('data-branches', JSON.stringify(branches));
+                    }
+                    if (hasOntologies) {
+                        searchInput.setAttribute('data-ontologies', JSON.stringify(ontologies));
+                    }
+                    if (hasValueSets) {
+                        searchInput.setAttribute('data-value-sets', JSON.stringify(valueSets));
+                    }
+                    
+                    // Set existing value
+                    if (value) {
+                        if (value['@id']) {
+                            // Extract label - handle both string and @value wrapped formats
+                            let label = value['rdfs:label'];
+                            if (label && typeof label === 'object' && label['@value']) {
+                                label = label['@value'];
+                            }
+                            searchInput.value = label || value['@id'];
+                            searchInput.setAttribute('data-selected-id', value['@id']);
+                            searchInput.setAttribute('data-selected-label', label || value['@id']);
+                        }
+                    }
+                    
+                    // Create info text showing constraint details
+                    const infoText = document.createElement('small');
+                    infoText.className = 'form-text text-muted';
+                    infoText.textContent = this.getOntologyConstraintInfo(constraints);
+                    
+                    container.appendChild(searchInput);
+                    container.appendChild(infoText);
+                    
+                    // Set name and path on the actual input element
+                    searchInput.name = fieldPath;
+                    searchInput.setAttribute('data-path', fieldPath);
+                    
+                    input = container;
+                } else {
+                    // Single choice - use select dropdown
+                    input = document.createElement('select');
+                    input.className = 'form-control';
+                    
+                    // Get options from enum, _valueConstraints.literals, or ontology classes
+                    let options = [];
+                    let optionLabels = {};
+                    
+                    if (hasOntologyClasses) {
+                        // Use ontology classes as options
+                        options = ontologyClasses.map(cls => cls.uri);
+                        ontologyClasses.forEach(cls => {
+                            optionLabels[cls.uri] = cls.prefLabel || cls.label || cls.uri;
+                        });
+                    } else if (hasLiterals) {
+                        // Use literals as options
+                        literals.forEach(literal => {
+                            const val = literal.label || literal;
+                            options.push(val);
+                            optionLabels[val] = literal.label || literal;
+                        });
+                    } else {
+                        options = schema.enum || [];
+                    }
+                    
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = '-- Select --';
+                    input.appendChild(emptyOption);
+
+                    options.forEach(option => {
+                        const opt = document.createElement('option');
+                        opt.value = option;
+                        opt.textContent = optionLabels[option] || option;
+                        
+                        // Check if this option is selected
+                        if (value) {
+                            console.log(`Checking option ${option} against value:`, value);
+                            // For ontology fields, value has @id property
+                            if (isOntologyField && value['@id'] === option) {
+                                opt.selected = true;
+                                console.log(`Selected ontology option: ${option}`);
+                            }
+                            // For regular fields, value has @value property
+                            else if (!isOntologyField && value['@value'] === option) {
+                                opt.selected = true;
+                                console.log(`Selected regular option: ${option}`);
+                            }
+                        }
+                        input.appendChild(opt);
+                    });
+                    
+                    // Store metadata about ontology field
+                    if (isOntologyField) {
+                        input.setAttribute('data-ontology-field', 'true');
+                    }
+                }
+            } else if (inputType === 'textarea') {
+                input = document.createElement('textarea');
+                input.className = 'form-control';
+                input.rows = 3;
+                if (value && value['@value']) {
+                    input.value = value['@value'];
+                }
+            } else {
+                input = document.createElement('input');
+                input.type = inputType;
+                input.className = 'form-control';
+                
+                // Set number-specific attributes
+                if (inputType === 'number') {
+                    const numberType = constraints.numberType;
+                    if (numberType === 'xsd:decimal') {
+                        input.step = 'any'; // Allow decimal values
+                    } else if (numberType === 'xsd:integer' || numberType === 'xsd:long') {
+                        input.step = '1'; // Integer only
+                    }
+                }
+                
+                // Set value based on schema type
+                if (value) {
+                    if (typeof value === 'object' && value['@value'] !== undefined) {
+                        input.value = value['@value'] || '';
+                    } else if (typeof value === 'object' && value['rdfs:label']) {
+                        // Handle fields that have rdfs:label but no @value
+                        const label = value['rdfs:label'];
+                        input.value = (typeof label === 'object' && label['@value']) ? label['@value'] : label;
+                    } else if (typeof value === 'string' || typeof value === 'number') {
+                        input.value = value;
+                    }
+                }
+            }
+
+            input.name = fieldPath;
+            input.setAttribute('data-path', fieldPath);
+            
+            // Add required attribute
+            if (isRequired) {
+                input.required = true;
+            }
+
+            inputGroup.appendChild(input);
+            return inputGroup;
+        }
+
+        /**
+         * Get placeholder text for ontology field
+         */
+        getOntologyPlaceholder(constraints) {
+            if (constraints.branches && constraints.branches.length > 0) {
+                return `Search ${constraints.branches[0].name}...`;
+            }
+            if (constraints.ontologies && constraints.ontologies.length > 0) {
+                const names = constraints.ontologies.map(o => o.acronym).join(', ');
+                return `Search from ${names}...`;
+            }
+            if (constraints.valueSets && constraints.valueSets.length > 0) {
+                return 'Search value set...';
+            }
+            return 'Search ontology terms...';
+        }
+
+        /**
+         * Get info text for ontology field constraints
+         */
+        getOntologyConstraintInfo(constraints) {
+            const parts = [];
+            if (constraints.branches && constraints.branches.length > 0) {
+                parts.push(`Branch: ${constraints.branches.map(b => b.name).join(', ')}`);
+            }
+            if (constraints.ontologies && constraints.ontologies.length > 0) {
+                parts.push(`Ontologies: ${constraints.ontologies.map(o => o.acronym).join(', ')}`);
+            }
+            if (constraints.valueSets && constraints.valueSets.length > 0) {
+                parts.push(`Value sets: ${constraints.valueSets.length}`);
+            }
+            return parts.join(' | ') || 'Ontology field';
+        }
+
+        /**
+         * Determine input type from schema
+         */
+        getInputType(schema) {
+            const constraints = schema._valueConstraints || {};
+            
+            // Check for any ontology-based constraints
+            const hasOntologyConstraints = 
+                (constraints.classes && constraints.classes.length > 0) ||
+                (constraints.branches && constraints.branches.length > 0) ||
+                (constraints.ontologies && constraints.ontologies.length > 0) ||
+                (constraints.valueSets && constraints.valueSets.length > 0);
+            
+            if (hasOntologyConstraints && !constraints.literals) {
+                return 'select'; // Will be rendered as autocomplete/search field
+            }
+            
+            // Check for literals (enum values)
+            if (constraints.literals && constraints.literals.length > 0) {
+                // Multiple choice returns 'checkbox' to trigger checkbox rendering
+                if (constraints.multipleChoice) {
+                    return 'checkbox';
+                }
+                return 'select';
+            }
+            
+            // Check Cedar _ui.inputType
+            const uiInputType = schema._ui?.inputType;
+            if (uiInputType) {
+                if (uiInputType === 'textfield') return 'text';
+                if (uiInputType === 'textarea') return 'textarea';
+                if (uiInputType === 'numeric') return 'number';
+                if (uiInputType === 'email') return 'email';
+                if (uiInputType === 'date') return 'date';
+                if (uiInputType === 'temporal') {
+                    // Handle temporal fields based on temporalType
+                    const temporalType = constraints.temporalType;
+                    if (temporalType === 'xsd:date') return 'date';
+                    if (temporalType === 'xsd:dateTime') return 'datetime-local';
+                    if (temporalType === 'xsd:time') return 'time';
+                    return 'date'; // Default to date
+                }
+                if (uiInputType === 'list') return 'select';
+                if (uiInputType === 'radio') return 'radio';
+                if (uiInputType === 'checkbox') return 'checkbox';
+            }
+            
+            // Check for enum values
+            if (schema.enum) {
+                return 'select';
+            }
+            
+            // Check for number type constraint
+            if (constraints.numberType) {
+                return 'number';
+            }
+            
+            // Check for temporal type constraint
+            if (constraints.temporalType) {
+                if (constraints.temporalType === 'xsd:date') return 'date';
+                if (constraints.temporalType === 'xsd:dateTime') return 'datetime-local';
+                if (constraints.temporalType === 'xsd:time') return 'time';
+            }
+
+            // Check properties for Cedar field structure
+            if (schema.properties && schema.properties['@value']) {
+                const valueSchema = schema.properties['@value'];
+                const type = valueSchema.type;
+                const format = valueSchema.format;
+                
+                if (type === 'string') {
+                    if (format === 'date') return 'date';
+                    if (format === 'date-time') return 'datetime-local';
+                    if (format === 'email') return 'email';
+                    if (format === 'uri') return 'url';
+                    return 'text';
+                }
+                
+                if (type === 'number' || type === 'integer') {
+                    return 'number';
+                }
+                
+                if (type === 'boolean') {
+                    return 'checkbox';
+                }
+            }
+
+            const type = schema.type || 'string';
+            const format = schema.format;
+
+            if (type === 'string') {
+                if (format === 'date') return 'date';
+                if (format === 'date-time') return 'datetime-local';
+                if (format === 'email') return 'email';
+                if (format === 'uri') return 'url';
+                if (schema.maxLength && schema.maxLength > 200) return 'textarea';
+                return 'text';
+            }
+
+            if (type === 'number' || type === 'integer') {
+                return 'number';
+            }
+
+            if (type === 'boolean') {
+                return 'checkbox';
+            }
+
+            return 'text';
+        }
+
+        /**
+         * Collect form data from DOM
+         */
+        collectFormData() {
+            const form = document.getElementById('dynamic-form');
+            const formData = {
+                "@context": this.template["@context"] || {}
+            };
+
+            // Get all inputs and handle multiple choice checkboxes separately
+            const inputs = form.querySelectorAll('input, select, textarea');
+            const checkboxGroups = new Map(); // Group checkboxes by name
+            
+            inputs.forEach(input => {
+                const path = input.getAttribute('data-path');
+                if (!path) return;
+
+                // Handle multiple choice checkboxes (group them by name)
+                if (input.type === 'checkbox' && input.name && form.querySelectorAll(`input[name="${input.name}"]`).length > 1) {
+                    if (!checkboxGroups.has(input.name)) {
+                        checkboxGroups.set(input.name, []);
+                    }
+                    if (input.checked) {
+                        checkboxGroups.get(input.name).push(input.value);
+                    }
+                    return; // Skip individual processing
+                }
+
+                let value = input.value;
+                const isOntologyField = input.getAttribute('data-ontology-field') === 'true';
+
+                // Handle different input types
+                if (input.type === 'checkbox') {
+                    value = input.checked;
+                } else if (input.type === 'number') {
+                    value = value ? parseFloat(value) : null;
+                } else if (input.type === 'date' || input.type === 'datetime-local' || input.type === 'time') {
+                    // Keep as string for JSON-LD
+                    value = value || null;
+                }
+
+                // For ontology fields with search input, get the selected ID
+                if (isOntologyField && input.classList.contains('ontology-search')) {
+                    const selectedId = input.getAttribute('data-selected-id');
+                    const selectedLabel = input.getAttribute('data-selected-label') || value;
+                    console.log(`Ontology field ${path}: selectedId=${selectedId}, selectedLabel=${selectedLabel}, value=${value}`);
+                    if (selectedId) {
+                        // Create ontology value structure in Cedar JSON-LD format
+                        const ontologyValue = {
+                            '@id': selectedId,
+                            'rdfs:label': {
+                                '@value': selectedLabel
+                            }
+                        };
+                        console.log(`Creating ontology value for ${path}:`, ontologyValue);
+                        this.setNestedValue(formData, path, ontologyValue, true, input);
+                    } else {
+                        // Empty ontology field - save as empty object
+                        console.log(`Ontology field ${path} is empty - saving as {}`);
+                        this.setNestedValue(formData, path, {}, true, input);
+                    }
+                    return;
+                }
+
+                // Determine if this field needs @type annotation
+                let valueType = null;
+                if (input.type === 'number') {
+                    valueType = 'xsd:decimal';
+                } else if (input.type === 'date') {
+                    valueType = 'xsd:date';
+                } else if (input.type === 'datetime-local') {
+                    valueType = 'xsd:dateTime';
+                } else if (input.type === 'time') {
+                    valueType = 'xsd:time';
+                }
+
+                // Set value in nested structure
+                this.setNestedValue(formData, path, value, isOntologyField, input, valueType);
+            });
+            
+            // Process grouped checkboxes (multiple choice)
+            checkboxGroups.forEach((values, name) => {
+                // Convert to array of Cedar field format
+                const cedarValues = values.map(v => ({
+                    "@value": v
+                }));
+                this.setNestedValue(formData, name, cedarValues, false, null);
+            });
+
+            return formData;
+        }
+
+        /**
+         * Set nested value in object using dot notation path
+         */
+        setNestedValue(obj, path, value, isOntologyField, inputElement, valueType = null) {
+            const parts = path.split('.');
+            let current = obj;
+
+            for (let i = 0; i < parts.length - 1; i++) {
+                const part = parts[i];
+                
+                // Handle array notation
+                const arrayMatch = part.match(/(.+)\[(\d+)\]/);
+                if (arrayMatch) {
+                    const arrayName = arrayMatch[1];
+                    const index = parseInt(arrayMatch[2]);
+                    
+                    if (!current[arrayName]) {
+                        current[arrayName] = [];
+                    }
+                    if (!current[arrayName][index]) {
+                        current[arrayName][index] = {};
+                    }
+                    current = current[arrayName][index];
+                } else {
+                    if (!current[part]) {
+                        current[part] = {};
+                    }
+                    current = current[part];
+                }
+            }
+
+            const lastPart = parts[parts.length - 1];
+            const arrayMatch = lastPart.match(/(.+)\[(\d+)\]/);
+            
+            if (arrayMatch) {
+                const arrayName = arrayMatch[1];
+                const index = parseInt(arrayMatch[2]);
+                if (!current[arrayName]) {
+                    current[arrayName] = [];
+                }
+                
+                // Store based on field type
+                if (isOntologyField) {
+                    // For ontology fields, check if value is already structured
+                    if (typeof value === 'object' && value['@id']) {
+                        current[arrayName][index] = value;
+                    } else if (typeof value === 'object' && Object.keys(value).length === 0) {
+                        // Empty ontology field - save as empty object
+                        current[arrayName][index] = {};
+                    } else if (inputElement && inputElement.options && inputElement.selectedIndex > 0) {
+                        // Select element - get label from option (skip index 0 which is "-- Select --")
+                        const selectedOption = inputElement.options[inputElement.selectedIndex];
+                        current[arrayName][index] = {
+                            "@id": value,
+                            "rdfs:label": {
+                                "@value": selectedOption.text
+                            }
+                        };
+                    } else if (value) {
+                        // Already structured from ontology search input or other object
+                        current[arrayName][index] = value;
+                    } else {
+                        // No value for ontology field - save as empty object
+                        current[arrayName][index] = {};
+                    }
+                } else {
+                    // Regular fields - always save with @value (even if null/empty)
+                    const fieldValue = { "@value": value || null };
+                    if (valueType) {
+                        fieldValue["@type"] = valueType;
+                    }
+                    current[arrayName][index] = fieldValue;
+                }
+            } else {
+                // Store as JSON-LD value object
+                if (isOntologyField) {
+                    // For ontology fields, always save (even if empty)
+                    if (typeof value === 'object' && value['@id']) {
+                        current[lastPart] = value;
+                    } else if (typeof value === 'object' && Object.keys(value).length === 0) {
+                        // Empty ontology field - save as empty object
+                        current[lastPart] = {};
+                    } else if (inputElement && inputElement.options && inputElement.selectedIndex > 0) {
+                        // Select element - get label from option (skip index 0 which is "-- Select --")
+                        const selectedOption = inputElement.options[inputElement.selectedIndex];
+                        current[lastPart] = {
+                            "@id": value,
+                            "rdfs:label": {
+                                "@value": selectedOption.text
+                            }
+                        };
+                    } else if (value && value !== null && value !== '') {
+                        // Already structured from ontology search input
+                        current[lastPart] = value;
+                    } else {
+                        // No value for ontology field - save as empty object
+                        current[lastPart] = {};
+                    }
+                } else {
+                    // For regular fields, store as @value (even if null/empty)
+                    const fieldValue = { "@value": value || null };
+                    if (valueType) {
+                        fieldValue["@type"] = valueType;
+                    }
+                    current[lastPart] = fieldValue;
+                }
+            }
+        }
+    }
+
+    // Ontology Autocomplete Handler
+    class OntologyAutocomplete {
+        constructor() {
+            this.debounceTimer = null;
+            this.currentInput = null;
+            this.currentDropdown = null;
+            this.selectedIndex = -1;
+        }
+
+        /**
+         * Initialize autocomplete for an input element
+         */
+        init(input) {
+            // Check if already initialized
+            if (input.hasAttribute('data-autocomplete-initialized')) {
+                return;
+            }
+            
+            const container = input.closest('.ontology-field-container');
+            if (!container) return;
+
+            // Check if dropdown already exists
+            let dropdown = container.querySelector('.ontology-autocomplete');
+            if (!dropdown) {
+                // Create dropdown element
+                dropdown = document.createElement('div');
+                dropdown.className = 'ontology-autocomplete';
+                dropdown.style.display = 'none';
+                container.appendChild(dropdown);
+            }
+
+            // Add event listeners
+            input.addEventListener('input', (e) => this.handleInput(e, input, dropdown));
+            input.addEventListener('keydown', (e) => this.handleKeydown(e, dropdown));
+            input.addEventListener('focus', (e) => {
+                if (input.value && dropdown.children.length > 0) {
+                    dropdown.style.display = 'block';
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+            
+            // Mark as initialized
+            input.setAttribute('data-autocomplete-initialized', 'true');
+        }
+
+        /**
+         * Handle input changes with debouncing
+         */
+        handleInput(event, input, dropdown) {
+            const query = input.value.trim();
+            
+            if (query.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            // Clear previous timer
+            if (this.debounceTimer) {
+                clearTimeout(this.debounceTimer);
+            }
+
+            // Show loading
+            dropdown.innerHTML = '<div class="ontology-loading">Searching...</div>';
+            dropdown.style.display = 'block';
+
+            // Debounce search
+            this.debounceTimer = setTimeout(() => {
+                this.search(query, input, dropdown);
+            }, 300);
+        }
+
+        /**
+         * Handle keyboard navigation
+         */
+        handleKeydown(event, dropdown) {
+            if (dropdown.style.display === 'none') return;
+
+            const items = dropdown.querySelectorAll('.ontology-autocomplete-item');
+            
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                this.selectedIndex = Math.min(this.selectedIndex + 1, items.length - 1);
+                this.updateSelection(items);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+                this.updateSelection(items);
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                if (this.selectedIndex >= 0 && items[this.selectedIndex]) {
+                    items[this.selectedIndex].click();
+                }
+            } else if (event.key === 'Escape') {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        /**
+         * Update visual selection
+         */
+        updateSelection(items) {
+            items.forEach((item, index) => {
+                if (index === this.selectedIndex) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        /**
+         * Search ontology terms
+         */
+        async search(query, input, dropdown) {
+            try {
+                const constraints = this.getConstraints(input);
+                const results = await this.searchBioPortal(query, constraints);
+                
+                if (results.length === 0) {
+                    dropdown.innerHTML = '<div class="ontology-no-results">No results found</div>';
+                } else {
+                    this.renderResults(results, input, dropdown);
+                }
+                
+                this.selectedIndex = -1;
+                dropdown.style.display = 'block';
+            } catch (error) {
+                console.error('Ontology search error:', error);
+                dropdown.innerHTML = '<div class="ontology-no-results">Error searching ontology</div>';
+            }
+        }
+
+        /**
+         * Get constraint information from input
+         */
+        getConstraints(input) {
+            const constraints = {
+                ontologies: [],
+                branches: [],
+                classes: []
+            };
+
+            if (input.hasAttribute('data-ontologies')) {
+                try {
+                    constraints.ontologies = JSON.parse(input.getAttribute('data-ontologies'));
+                } catch (e) {}
+            }
+
+            if (input.hasAttribute('data-branches')) {
+                try {
+                    constraints.branches = JSON.parse(input.getAttribute('data-branches'));
+                } catch (e) {}
+            }
+
+            if (input.hasAttribute('data-classes')) {
+                try {
+                    constraints.classes = JSON.parse(input.getAttribute('data-classes'));
+                } catch (e) {}
+            }
+
+            return constraints;
+        }
+
+        /**
+         * Search BioPortal API
+         */
+        async searchBioPortal(query, constraints) {
+            const params = new URLSearchParams({
+                q: query,
+                pagesize: 20,
+                suggest: true
+            });
+
+            // Add ontology filters
+            if (constraints.ontologies && constraints.ontologies.length > 0) {
+                const acronyms = constraints.ontologies.map(o => o.acronym).join(',');
+                params.append('ontologies', acronyms);
+            }
+
+            // Add branch filters (root class URI)
+            if (constraints.branches && constraints.branches.length > 0) {
+                const rootUri = constraints.branches[0].uri;
+                if (rootUri) {
+                    params.append('subtree_root_id', rootUri);
+                }
+            }
+
+            const url = `https://data.bioontology.org/search?${params.toString()}`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `apikey token=${bioportalApiKey}`,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('BioPortal API error');
+            }
+
+            const data = await response.json();
+            return this.parseBioPortalResults(data);
+        }
+
+        /**
+         * Parse BioPortal search results
+         */
+        parseBioPortalResults(data) {
+            if (!data.collection) return [];
+
+            return data.collection.map(item => ({
+                id: item['@id'],
+                label: item.prefLabel || item.label || 'No label',
+                ontology: item.links?.ontology ? this.extractOntologyAcronym(item.links.ontology) : 'Unknown',
+                definition: item.definition ? item.definition[0] : null
+            }));
+        }
+
+        /**
+         * Extract ontology acronym from URL
+         */
+        extractOntologyAcronym(url) {
+            const match = url.match(/\/ontologies\/([^\/]+)/);
+            return match ? match[1] : 'Unknown';
+        }
+
+        /**
+         * Render search results
+         */
+        renderResults(results, input, dropdown) {
+            dropdown.innerHTML = '';
+
+            results.forEach((result, index) => {
+                const item = document.createElement('div');
+                item.className = 'ontology-autocomplete-item';
+                
+                const labelSpan = document.createElement('span');
+                labelSpan.className = 'ontology-item-label';
+                labelSpan.textContent = result.label;
+                
+                const ontologySpan = document.createElement('span');
+                ontologySpan.className = 'ontology-item-ontology';
+                ontologySpan.textContent = `[${result.ontology}]`;
+                
+                const idDiv = document.createElement('div');
+                idDiv.className = 'ontology-item-id';
+                idDiv.textContent = result.id;
+                
+                item.appendChild(labelSpan);
+                item.appendChild(ontologySpan);
+                item.appendChild(idDiv);
+                
+                item.addEventListener('click', () => {
+                    input.value = result.label;
+                    input.setAttribute('data-selected-id', result.id);
+                    input.setAttribute('data-selected-label', result.label);
+                    dropdown.style.display = 'none';
+                });
+
+                dropdown.appendChild(item);
+            });
+        }
+    }
+
+    // Initialize autocomplete and make it globally accessible
+    window.ontologyAutocomplete = new OntologyAutocomplete();
+    
+    // Helper function to initialize all ontology fields
+    window.initializeOntologyFields = function() {
+        document.querySelectorAll('.ontology-search').forEach(input => {
+            window.ontologyAutocomplete.init(input);
+        });
+    };
+
+    // Initialize form renderer
+    console.log('Template Object:', templateObject);
+    console.log('Instance Data:', instanceData);
+    console.log('Form Info:', formInfo);
+    
+    const renderer = new FormRenderer(templateObject, instanceData);
+    renderer.render();
+
+    // Initialize autocomplete for all ontology search fields
+    window.initializeOntologyFields();
+
+    // Save button handler
+    document.getElementById('save-btn').addEventListener('click', function() {
+        const formData = renderer.collectFormData();
+        
+        const payload = {
+            'metadata': formData,
+            'info': formInfo
+        };
+
+        const method = formInfo ? 'PUT' : 'POST';
+        const url = window.location.origin + '/api/cedar/store';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '/';
+            } else {
+                alert('An error occurred while saving the form. Please try again.');
+            }
+        })
+        .catch(error => {
+            alert('An error occurred while saving the form. Server response not received.');
+            console.error('Error:', error);
+        });
+    });
+</script>
+
+<style>
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .card-title {
+        color: #00897b;
+        border-bottom: 2px solid #00897b;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .nested-object {
+        padding-left: 1.5rem;
+        border-left: 3px solid #e0e0e0;
+    }
+
+    .array-container {
+        padding: 0.5rem;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+    }
+
+    .array-item {
+        background-color: white;
+    }
+
+    #save-btn {
+        min-width: 100px;
+    }
+</style>
+{% endblock %}

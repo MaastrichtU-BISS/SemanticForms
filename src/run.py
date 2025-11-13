@@ -177,7 +177,10 @@ def cee():
     if not session.get("user"):
         return redirect("/login")
     
-    return render_template("cee.html", templateObject=json.dumps(get_template()))
+    bioportal_key = config.get("bioportal", {}).get("api_key", "")
+    return render_template("form.html", 
+                         templateObject=json.dumps(get_template()),
+                         bioportal_api_key=bioportal_key)
 
 @app.route("/instance/<identifier>/edit")
 def edit_cee(identifier: str):
@@ -186,6 +189,7 @@ def edit_cee(identifier: str):
         return redirect("/login")
     
     if identifier:
+        print(f"Loading instance from file: {identifier}")
         fileNameJson = persistance.get_instance(identifier)['filename']
         with open(fileNameJson, "r") as f:
             jsonData = json.load(f)
@@ -200,10 +204,13 @@ def edit_cee(identifier: str):
             del jsonData["@id"]
             del jsonData["pav:createdOn"]
             del jsonData["schema:isBasedOn"]
-        return render_template("cee.html",
+        
+        bioportal_key = config.get("bioportal", {}).get("api_key", "")
+        return render_template("form.html",
                                templateObject=json.dumps(get_template()),
                                formData=json.dumps(jsonData),
-                               formInfo=json.dumps(infoData))
+                               formInfo=json.dumps(infoData),
+                               bioportal_api_key=bioportal_key)
     
     return redirect("/", error="Could not load data")  
 
@@ -285,9 +292,22 @@ def get_template():
     
     if config['template']['source'] == 'file':
         template = { }
-        if os.path.exists(config['template']['location']):
-            with open(config['template']['location']) as f:
+        template_path = config['template']['location']
+        
+        # Try relative to current working directory first
+        if not os.path.exists(template_path):
+            # Try relative to this file's directory
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            template_path = os.path.join(script_dir, config['template']['location'])
+        
+        if os.path.exists(template_path):
+            logging.info(f"Loading template from: {template_path}")
+            with open(template_path, 'r') as f:
                 template = json.load(f)
+        else:
+            logging.error(f"Template file not found at: {template_path}")
+            logging.error(f"Current working directory: {os.getcwd()}")
+            
         return template
 
 @app.route("/api/cedar/store", methods=["POST", "PUT"])
