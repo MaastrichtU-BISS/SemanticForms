@@ -348,6 +348,45 @@
                     continue;
                 }
 
+                // Check if this is an array field
+                const isArray = fieldSchema.type === 'array';
+                
+                if (isArray) {
+                    // Render array field
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'form-group mb-3';
+                    
+                    const label = document.createElement('label');
+                    const fieldLabel = schema._ui?.propertyLabels?.[key] || fieldSchema.items?.['schema:name'] || key;
+                    label.textContent = fieldLabel;
+                    label.className = 'font-weight-bold';
+                    
+                    // Add required indicator for arrays
+                    if (fieldSchema.items?._valueConstraints?.requiredValue) {
+                        const required = document.createElement('span');
+                        required.className = 'text-danger';
+                        required.textContent = ' *';
+                        label.appendChild(required);
+                    }
+                    
+                    fieldDiv.appendChild(label);
+                    
+                    // Add description if available
+                    const fieldDesc = schema._ui?.propertyDescriptions?.[key] || fieldSchema.items?.['schema:description'];
+                    if (fieldDesc && fieldDesc !== 'Help Text') {
+                        const desc = document.createElement('small');
+                        desc.className = 'form-text text-muted d-block mb-2';
+                        desc.textContent = fieldDesc;
+                        fieldDiv.appendChild(desc);
+                    }
+                    
+                    const arrayFields = this.renderArray(`${parentName}.${key}`, fieldSchema, currentValue[key]);
+                    fieldDiv.appendChild(arrayFields);
+                    
+                    container.appendChild(fieldDiv);
+                    continue;
+                }
+                
                 // Check if this is a nested element or field
                 const fieldType = fieldSchema['@type'];
                 const isNestedElement = fieldType === 'https://schema.metadatacenter.org/core/TemplateElement';
@@ -428,6 +467,58 @@
             container.className = 'array-container';
             container.setAttribute('data-field', fieldName);
 
+            // Check if this is a checkbox/radio group (array items are checkbox/radio fields)
+            const itemSchema = schema.items;
+            const isCheckboxGroup = itemSchema?._ui?.inputType === 'checkbox' || itemSchema?._ui?.inputType === 'radio';
+            const constraints = itemSchema?._valueConstraints || {};
+            const hasLiterals = constraints.literals && constraints.literals.length > 0;
+            
+            if (isCheckboxGroup && hasLiterals) {
+                // Render as a single checkbox/radio group instead of repeatable items
+                const multipleChoice = constraints.multipleChoice !== false; // default to true for checkboxes
+                const literals = constraints.literals;
+                
+                const items = Array.isArray(value) ? value : [];
+                
+                // Initialize array in form data
+                if (!this.formData[fieldName]) {
+                    this.formData[fieldName] = [];
+                }
+                
+                literals.forEach((literal, index) => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'form-check';
+                    
+                    const input = document.createElement('input');
+                    input.type = multipleChoice ? 'checkbox' : 'radio';
+                    input.className = 'form-check-input';
+                    input.id = `${fieldName}_${index}`;
+                    input.value = literal.label || literal;
+                    input.name = fieldName;
+                    input.setAttribute('data-path', fieldName);
+                    input.setAttribute('data-array-checkbox', 'true');
+                    
+                    // Check if this option is selected
+                    const isSelected = literal.selectedByDefault || 
+                                     items.some(item => item['@value'] === input.value);
+                    if (isSelected) {
+                        input.checked = true;
+                    }
+                    
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.htmlFor = input.id;
+                    label.textContent = literal.label || literal;
+                    
+                    optionDiv.appendChild(input);
+                    optionDiv.appendChild(label);
+                    container.appendChild(optionDiv);
+                });
+                
+                return container;
+            }
+            
+            // Standard array rendering for non-checkbox fields
             const items = Array.isArray(value) ? value : [];
             
             // Initialize array in form data
@@ -969,8 +1060,13 @@
                 const path = input.getAttribute('data-path');
                 if (!path) return;
 
-                // Handle multiple choice checkboxes (group them by name)
-                if (input.type === 'checkbox' && input.name && form.querySelectorAll(`input[name="${input.name}"]`).length > 1) {
+                // Handle checkbox groups (both regular and array-based checkbox groups)
+                const isArrayCheckbox = input.getAttribute('data-array-checkbox') === 'true';
+                const isRegularCheckboxGroup = input.type === 'checkbox' && input.name && 
+                                              form.querySelectorAll(`input[name="${input.name}"]`).length > 1 &&
+                                              !isArrayCheckbox;
+                
+                if (input.type === 'checkbox' && (isArrayCheckbox || isRegularCheckboxGroup)) {
                     if (!checkboxGroups.has(input.name)) {
                         checkboxGroups.set(input.name, []);
                     }
