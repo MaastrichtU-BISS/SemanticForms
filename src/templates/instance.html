@@ -151,6 +151,55 @@
             this.container = document.getElementById(containerId);
         }
 
+        // Helper function to detect URLs and convert them to links
+        makeLinksClickable(text) {
+            if (!text || typeof text !== 'string') {
+                return text;
+            }
+            
+            // URL regex pattern - matches http(s):// and www. URLs
+            const urlPattern = /(\b(https?:\/\/|www\.)[^\s<]+[^<.,:;"')\]\s])/gi;
+            
+            // Check if text contains a URL
+            if (urlPattern.test(text)) {
+                const fragment = document.createDocumentFragment();
+                let lastIndex = 0;
+                
+                // Reset regex
+                urlPattern.lastIndex = 0;
+                let match;
+                
+                while ((match = urlPattern.exec(text)) !== null) {
+                    // Add text before the URL
+                    if (match.index > lastIndex) {
+                        fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+                    }
+                    
+                    // Add the URL as a link
+                    const link = document.createElement('a');
+                    let url = match[0];
+                    // Add http:// if URL starts with www.
+                    link.href = url.startsWith('www.') ? 'http://' + url : url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = url;
+                    fragment.appendChild(link);
+                    
+                    lastIndex = match.index + match[0].length;
+                }
+                
+                // Add remaining text
+                if (lastIndex < text.length) {
+                    fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+                }
+                
+                return fragment;
+            }
+            
+            // No URLs found, return plain text
+            return text;
+        }
+
         render() {
             const properties = this.template.properties || {};
             const order = this.template._ui?.order || Object.keys(properties);
@@ -234,13 +283,23 @@
                 const link = document.createElement('a');
                 link.href = value['@id'];
                 link.target = '_blank';
+                link.rel = 'noopener noreferrer';
                 const labelValue = value['rdfs:label'];
                 link.textContent = (typeof labelValue === 'object' && labelValue['@value']) ? labelValue['@value'] : labelValue || value['@id'];
                 valueElement.appendChild(link);
             } else {
                 // Regular value field
                 const displayValue = value['@value'];
-                valueElement.textContent = displayValue !== null && displayValue !== undefined ? displayValue : '—';
+                if (displayValue !== null && displayValue !== undefined) {
+                    const linkableContent = this.makeLinksClickable(displayValue);
+                    if (linkableContent instanceof DocumentFragment) {
+                        valueElement.appendChild(linkableContent);
+                    } else {
+                        valueElement.textContent = linkableContent;
+                    }
+                } else {
+                    valueElement.textContent = '—';
+                }
             }
 
             fieldGroup.appendChild(valueElement);
@@ -316,11 +375,17 @@
                     const link = document.createElement('a');
                     link.href = value['@id'];
                     link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
                     const labelValue = value['rdfs:label'];
                     link.textContent = (typeof labelValue === 'object' && labelValue['@value']) ? labelValue['@value'] : labelValue || value['@id'];
                     valueElement.appendChild(link);
                 } else if (value && value['@value'] !== null && value['@value'] !== undefined) {
-                    valueElement.textContent = value['@value'];
+                    const linkableContent = this.makeLinksClickable(value['@value']);
+                    if (linkableContent instanceof DocumentFragment) {
+                        valueElement.appendChild(linkableContent);
+                    } else {
+                        valueElement.textContent = linkableContent;
+                    }
                 } else {
                     return null; // Skip empty items
                 }
