@@ -563,11 +563,18 @@
             itemHeader.textContent = `Item ${index + 1}`;
             cardBody.appendChild(itemHeader);
 
-            // Check if this is a TemplateElement (object with @type)
-            const isTemplateElement = itemSchema['@type'] === 'https://schema.metadatacenter.org/core/TemplateElement';
+            // Check if this is a Cedar TemplateField or TemplateElement
+            const itemType = itemSchema['@type'];
+            const isCedarField = itemType === 'https://schema.metadatacenter.org/core/TemplateField';
+            const isTemplateElement = itemType === 'https://schema.metadatacenter.org/core/TemplateElement';
             
-            // If item is object with properties
-            if (itemSchema.type === 'object' || itemSchema.properties) {
+            // If it's a Cedar TemplateField, render it as a simple input (don't show internal properties)
+            if (isCedarField) {
+                const input = this.renderInput(`${fieldName}[${index}]`, itemSchema, value);
+                cardBody.appendChild(input);
+            }
+            // If item is object with properties (but not a Cedar TemplateField)
+            else if (itemSchema.type === 'object' || itemSchema.properties) {
                 const properties = itemSchema.properties || {};
                 const fieldOrder = itemSchema._ui?.order || Object.keys(properties);
                 
