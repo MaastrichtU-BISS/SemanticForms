@@ -463,6 +463,13 @@
          * Render array fields (repeatable)
          */
         renderArray(fieldName, schema, value) {
+            console.log(`renderArray called for ${fieldName}:`, {
+                itemsType: schema.items?.['@type'],
+                itemsHasProperties: !!schema.items?.properties,
+                itemsType_schema: schema.items?.type,
+                value: value
+            });
+            
             const container = document.createElement('div');
             container.className = 'array-container';
             container.setAttribute('data-field', fieldName);
@@ -519,12 +526,13 @@
             }
             
             // Standard array rendering for non-checkbox fields
+            // If value is not an array (e.g., malformed data from old system), treat as empty
             const items = Array.isArray(value) ? value : [];
             
-            // Initialize array in form data
-            if (!this.formData[fieldName]) {
-                this.formData[fieldName] = [];
-            }
+            console.log(`  Array has ${items.length} items, will render with + Add button`);
+            
+            // Initialize array in form data - always set to empty array to clear malformed data
+            this.formData[fieldName] = [];
 
             const itemsContainer = document.createElement('div');
             itemsContainer.className = 'array-items';
@@ -551,6 +559,13 @@
          * Render a single array item
          */
         renderArrayItem(fieldName, itemSchema, value, index) {
+            console.log(`renderArrayItem called for ${fieldName}[${index}]:`, {
+                itemType: itemSchema['@type'],
+                hasProperties: !!itemSchema.properties,
+                schemaType: itemSchema.type,
+                value: value
+            });
+            
             const itemDiv = document.createElement('div');
             itemDiv.className = 'array-item card mb-2';
             
@@ -567,6 +582,8 @@
             const itemType = itemSchema['@type'];
             const isCedarField = itemType === 'https://schema.metadatacenter.org/core/TemplateField';
             const isTemplateElement = itemType === 'https://schema.metadatacenter.org/core/TemplateElement';
+            
+            console.log(`  isCedarField: ${isCedarField}, isTemplateElement: ${isTemplateElement}`);
             
             // If it's a Cedar TemplateField, render it as a simple input (don't show internal properties)
             if (isCedarField) {
@@ -610,7 +627,14 @@
                     }
 
                     const currentValue = value && value[key];
-                    const input = this.renderInput(`${fieldName}[${index}].${key}`, fieldSchema, currentValue);
+                    
+                    // Check if this is an array field - if so, use renderArray instead of renderInput
+                    let input;
+                    if (fieldSchema.type === 'array') {
+                        input = this.renderArray(`${fieldName}[${index}].${key}`, fieldSchema, currentValue);
+                    } else {
+                        input = this.renderInput(`${fieldName}[${index}].${key}`, fieldSchema, currentValue);
+                    }
                     fieldDiv.appendChild(input);
 
                     cardBody.appendChild(fieldDiv);
