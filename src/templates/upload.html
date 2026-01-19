@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+{#  <head>#}
+{#    <meta charset="utf-8" />#}
+{#    <title>Upload JSON-LD Instance</title>#}
+{#  </head>#}
+{#  <body>#}
+{#    <h1>Upload JSON-LD Instance</h1>#}
+{##}
+{#    <!-- Basic form, posts to /upload -->#}
+{#    <form action="{{ url_for('upload_instance') }}" method="post" enctype="multipart/form-data">#}
+{#      <div>#}
+{#        <label for="instancefile">Select JSON-LD file (.jsonld / .json):</label>#}
+{#        <input type="file" id="instancefile" name="instancefile" accept=".jsonld,application/ld+json,application/json" required>#}
+{#      </div>#}
+{#      <div style="margin-top:1em;">#}
+{#        <button type="submit">Upload</button>#}
+{#        <a href="{{ url_for('index') }}"><button type="button">Cancel</button></a>#}
+{#      </div>#}
+{#    </form>#}
+{#  </body>#}
+<div class="container">
+    <h1>Upload JSON‑LD Instance</h1>
+
+    {% if errors %}
+      <div class="alert alert-danger">
+        <strong>Upload failed:</strong>
+        <ul>
+          {% for e in errors %}
+            <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if warnings %}
+      <div class="alert alert-warning">
+        <strong>Warnings:</strong>
+        <ul>
+          {% for w in warnings %}
+            <li>{{ w }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form action="{{ url_for('upload_instance') }}" method="post" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="instancefile">Select JSON‑LD file (.jsonld / .json)</label>
+        <input class="form-control-file" type="file" id="instancefile" name="instancefile" accept=".jsonld,application/ld+json,application/json" required>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn btn-primary" type="submit">Upload</button>
+        <a class="btn btn-secondary" href="{{ url_for('index') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</html>

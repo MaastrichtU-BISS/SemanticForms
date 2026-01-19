@@ -30,6 +30,7 @@ class FilePersistance(Persistance):
             for myFile in files:
                 if myFile.endswith(".jsonld"):
                     action(filename=os.path.join(root, myFile))
+                    print(myFile)
     
     def __find_title_recursively(self, metadata, uri_tree):
         """
@@ -714,8 +715,10 @@ class FilePersistance(Persistance):
             data["@id"] = id
         else:
             session_id = data["@id"].split("/")[-1]
+            print(f"Session ID is {session_id}")
 
         filename = os.path.join(self.__folder_location, f"{session_id}.jsonld")
+        print(f"Saving instance to {filename}")
         with open(filename, 'w') as f:
             json.dump(data, f, indent=4)
         self.__parse_jsonld_file(filename)

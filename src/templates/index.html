@@ -69,18 +69,57 @@
 
 {% block content %}
 <h1>Filled Templates</h1>
+{#<div class="row">#}
+{#    <div class="col-md-12">#}
+{#        <p>Please see below for all filled forms. To add a new form, login to the system and press the "add" button to fill in the template.</p>#}
+{#        {% if template_id is defined %}#}
+{#            <div class="mb-3"><a href="https://cedar.metadatacenter.org/instances/create/https://repo.metadatacenter.org/templates/{{template_id}}" role="button" class="btn btn-primary float-right" target="_blank">Add</a></div>#}
+{#        {% else %}#}
+{#            {% if user %}#}
+{#                <div class="mb-3"><a href="./add" role="button" class="btn btn-primary">Add</a></div>#}
+{#            {% endif %}#}
+{#        {% endif %}#}
+{#    </div>#}
+{#</div>#}
 <div class="row">
-    <div class="col-md-12">
-        <p>Please see below for all filled forms. To add a new form, login to the system and press the "add" button to fill in the template.</p>
-        {% if template_id is defined %}
-            <div class="mb-3"><a href="https://cedar.metadatacenter.org/instances/create/https://repo.metadatacenter.org/templates/{{template_id}}" role="button" class="btn btn-primary float-right" target="_blank">Add</a></div>
-        {% else %}
-            {% if user %}
-                <div class="mb-3"><a href="./add" role="button" class="btn btn-primary">Add</a></div>
-            {% endif %}
-        {% endif %}
-    </div>
+    <p>Please see below for all filled templates, press the "add" button to fill in the template or press "upload" button if you have already a JSON-LD file.</p>
+    {% if template_id is defined %}
+        <div class="container-fluid p-0">
+            <a href="https://cedar.metadatacenter.org/instances/create/https://repo.metadatacenter.org/templates/{{template_id}}" role="button" class="btn btn-primary float-right mb-1">Add</a>
+            <a href="{{ url_for('upload_instance') }}" role="button" class="btn btn-secondary float-right mb-1 mr-2">Upload</a>
+        </div>
+    {% else %}
+        <div class="container-fluid p-0">
+            <a href="./add" role="button" class="btn btn-primary float-right mb-1">Add</a>
+            <a href="{{ url_for('upload_instance') }}" role="button" class="btn btn-secondary float-right mb-1 mr-2">Upload</a>
+        </div>
+    {% endif %}
 </div>
+
+{#<div class="row">#}
+{#<table class="datatable table-striped">#}
+{#    <thead>#}
+{#        <tr>#}
+{#            <th scope="col">Title / ID</th>#}
+{#            <th scope="col">Creation Date</th>#}
+{#        </tr>#}
+{#    </thead>#}
+{#    <tbody>#}
+{#        {%for instance in instances %}#}
+{#        <tr>#}
+{#            <td><a href="./instance?uri={{instance['instance']['value']}}">{{instance["title"]["value"]}}</a></td>#}
+{#            <td><time datetime="{{instance['time']['value']}}"/></td>#}
+{#            {% if template_id is defined %}#}
+{#            <td><a href="https://cedar.metadatacenter.org/instances/edit/{{instance['instance']['value']}}" role="button" class="btn btn-secondary float-right">Edit</a></td>#}
+{#            {% else %}#}
+{#            <td><a href="./edit?uri={{instance['instance']['value']}}" role="button" class="btn btn-secondary float-right">Edit</a></td>#}
+{#            {% endif %}#}
+{#        </tr>#}
+{#        {%endfor%}#}
+{#    </tbody>#}
+{#</table>#}
+{#</div>#}
+{#{% endblock %}#}
 
 <!-- Search functionality -->
 <div class="row mb-3">

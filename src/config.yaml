@@ -1,20 +1,23 @@
 server:
-  storageFolder: ../data
+  storageFolder: ./data
 #   server_url: "https://graphdb.fairmodels.org"
 #   repository_name: "semantic_forms"
 #   update_endpoint_suffix: "/statements"
 template:
   source: cedar
-  templateId: 2781be7e-b18f-45d0-9c89-014c01f2ddf7
+  api_key: f846b5d259f11684aa24a008d20090721752018985f4fab925e3ea76a365e40e
+  templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3 #2781be7e-b18f-45d0-9c89-014c01f2ddf7
   storage: local
   instance_base_url: http://localhost
   title_predicate: title
+bioportal:
+  api_key: 98087a98-bf48-4ace-976d-375a99ff848c
 tableColumns:
   - property: "General Model Information.Title"
     label: "Title"
     linkable: true
   - property: "General Model Information.Created by"
-    label: "Author"
+    label: "Published by"
   - property: "General Model Information.Creation date"
     label: "Date created"
   - property: "General Model Information.Developed at CDS (Maastro)"
