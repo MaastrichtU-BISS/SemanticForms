@@ -5,13 +5,13 @@ server:
 #   update_endpoint_suffix: "/statements"
 template:
   source: cedar
-  api_key: f846b5d259f11684aa24a008d20090721752018985f4fab925e3ea76a365e40e
-  templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3 #2781be7e-b18f-45d0-9c89-014c01f2ddf7
+  api_key: 
+  templateId: 
   storage: local
   instance_base_url: http://localhost
   title_predicate: title
 bioportal:
-  api_key: 98087a98-bf48-4ace-976d-375a99ff848c
+  api_key: 
 tableColumns:
   - property: "General Model Information.Title"
     label: "Title"
