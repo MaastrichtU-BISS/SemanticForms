@@ -27,21 +27,26 @@ projects:
   # Optional: CEDAR template for project metadata
   project_metadata_template:
     source: cedar
-    templateId: your_project_template_id_here
+    templateId: 100bf5b8-a42e-4fe7-aaf3-c3305626cc54
   # Define project phases and their associated templates/questionnaires
   phases:
-    - name: "Phase 1: Initial Assessment"
+    - name: "Phase 1: Pre-registration"
       template:
         source: cedar
-        templateId: template_id_for_phase1
+        templateId: 2781be7e-b18f-45d0-9c89-014c01f2ddf7
         title_predicate: title
-    - name: "Phase 2: Development"
+    - name: "Phase 2: Training data description"
       template:
         source: cedar
-        templateId: template_id_for_phase2
+        templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
         title_predicate: title
-    - name: "Phase 3: Evaluation"
+    - name: "Phase 3: Model description"
       template:
         source: cedar
-        templateId: template_id_for_phase3
+        templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
+        title_predicate: title
+    - name: "Phase 4: Evaluation"
+      template:
+        source: cedar
+        templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
         title_predicate: title

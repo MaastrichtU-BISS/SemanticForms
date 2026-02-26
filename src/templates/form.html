@@ -96,7 +96,10 @@
 </style>
 
 <div class="container mt-4">
-    {% if is_project_mode and project_id and phase_name %}
+    {% if is_project_create %}
+    <h1>Create New Project</h1>
+    <p class="text-muted">Fill in the project metadata using the template below.</p>
+    {% elif is_project_mode and project_id and phase_name %}
     <h1>{{ 'Edit' if formData else 'Add' }} Questionnaire</h1>
     <div class="alert alert-info mb-4">
         <strong>Phase:</strong> {{ phase_name }}
@@ -112,8 +115,8 @@
     </div>
 
     <div class="mt-4">
-        <button type="button" id="save-btn" class="btn btn-primary">Save</button>
-        <a href="/" class="btn btn-secondary">Cancel</a>
+        <button type="button" id="save-btn" class="btn btn-primary">{% if is_project_create %}Create Project{% else %}Save{% endif %}</button>
+        <a href="{% if is_project_create %}/projects{% elif is_project_mode and project_id %}/projects/{{ project_id }}{% else %}/{% endif %}" class="btn btn-secondary">Cancel</a>
     </div>
 </div>
 
@@ -1691,14 +1694,21 @@
 
         const method = formInfo ? 'PUT' : 'POST';
         
-        // Determine URL based on project mode
+        // Determine URL based on context
         let url;
-        {% if is_project_mode and project_id and phase_name %}
-        // Project mode: use project-specific endpoint
+        let redirectUrl;
+        {% if is_project_create %}
+        // Project creation mode: use project creation endpoint
+        url = window.location.origin + '/api/projects/store';
+        redirectUrl = null; // Will be determined from response
+        {% elif is_project_mode and project_id and phase_name %}
+        // Project phase mode: use project-specific endpoint
         url = window.location.origin + '/api/projects/{{ project_id }}/phase/{{ phase_name }}/store';
+        redirectUrl = '/projects/{{ project_id }}';
         {% else %}
         // Standard mode: use regular endpoint
         url = window.location.origin + '/api/cedar/store';
+        redirectUrl = '/';
         {% endif %}
 
         fetch(url, {
@@ -1711,16 +1721,23 @@
         })
         .then(response => {
             if (response.ok) {
-                {% if is_project_mode and project_id %}
-                // Redirect back to project detail page
-                window.location.href = '/projects/{{ project_id }}';
-                {% else %}
-                // Redirect to home page
-                window.location.href = '/';
-                {% endif %}
+                return response.json();
             } else {
-                alert('An error occurred while saving the form. Please try again.');
+                throw new Error('Server error');
             }
+        })
+        .then(data => {
+            {% if is_project_create %}
+            // For project creation, redirect to the new project's page
+            if (data.project_id) {
+                window.location.href = '/projects/' + data.project_id;
+            } else {
+                alert('An error occurred while creating the project.');
+            }
+            {% else %}
+            // For other forms, redirect to predefined URL
+            window.location.href = redirectUrl;
+            {% endif %}
         })
         .catch(error => {
             alert('An error occurred while saving the form. Server response not received.');
