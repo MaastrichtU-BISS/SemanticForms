@@ -1,0 +1,1084 @@
+{
+  "@context": {
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "pav": "http://purl.org/pav/",
+    "schema": "http://schema.org/",
+    "oslc": "http://open-services.net/ns/core#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "rdfs:label": {
+      "@type": "xsd:string"
+    },
+    "schema:isBasedOn": {
+      "@type": "@id"
+    },
+    "schema:name": {
+      "@type": "xsd:string"
+    },
+    "schema:description": {
+      "@type": "xsd:string"
+    },
+    "pav:derivedFrom": {
+      "@type": "@id"
+    },
+    "pav:createdOn": {
+      "@type": "xsd:dateTime"
+    },
+    "pav:createdBy": {
+      "@type": "@id"
+    },
+    "pav:lastUpdatedOn": {
+      "@type": "xsd:dateTime"
+    },
+    "oslc:modifiedBy": {
+      "@type": "@id"
+    },
+    "skos:notation": {
+      "@type": "xsd:string"
+    },
+    "General Model Information": "https://schema.metadatacenter.org/properties/61b8809b-12c4-44e8-8a51-cfcfd13fc87d",
+    "Outcome": "https://schema.metadatacenter.org/properties/e45d35b4-90a1-4da5-96d8-d11c947a88a4",
+    "Applicability criteria": "https://schema.metadatacenter.org/properties/80f4b20e-9da8-493c-a380-10859551014f",
+    "Foundational model or algorithm used": "https://schema.metadatacenter.org/properties/f9370862-b55f-4e91-b4c5-4d216ee38d6b",
+    "Primary intended use(s)": "https://schema.metadatacenter.org/properties/15e1ff32-aa1d-4318-a818-f7de336469d6",
+    "Primary intended users": "https://schema.metadatacenter.org/properties/60e22218-fc13-4d44-b115-77310f8e7501",
+    "Out-of-scope use cases": "https://schema.metadatacenter.org/properties/3ce0ea76-1209-4f15-bdf3-d728b38b55ef",
+    "Data": "https://schema.metadatacenter.org/properties/eb491acc-f4a5-4e9e-8c3d-62a7e30099af",
+    "Human life": "https://schema.metadatacenter.org/properties/d0ffc5a7-bd62-4187-b2f0-07a66f897837",
+    "Mitigations": "https://schema.metadatacenter.org/properties/a00fcb24-bbc0-4689-aabd-c54792413a16",
+    "Risks and harms": "https://schema.metadatacenter.org/properties/4feab147-4d43-434e-a340-7970e695eb2c",
+    "Use cases": "https://schema.metadatacenter.org/properties/a6e4f2d0-50bc-403a-a969-568b11a5c509",
+    "Additional concerns": "https://schema.metadatacenter.org/properties/4ee36e81-2af5-4128-9ec0-048349f3665c",
+    "Outcome label": "https://schema.metadatacenter.org/properties/a39ebe1a-2c26-46db-b6cc-0be37dc898ee",
+    "Previous model tests1": "https://schema.metadatacenter.org/properties/a54b4b1b-6aaf-480e-8dc5-69f950f7a478",
+    "Evaluation results1": "https://schema.metadatacenter.org/properties/1626b87c-50af-4d44-940b-37dddb12d116",
+    "Input data1": "https://schema.metadatacenter.org/properties/64dd7e02-def4-4d72-b1e1-d7402998fdb5",
+    "Outcome type": "https://schema.metadatacenter.org/properties/63c117c6-dcdb-48e5-bd00-916ba7964f08"
+  },
+  "General Model Information": {
+    "@context": {
+      "Title": "https://schema.metadatacenter.org/properties/6610ba27-0f64-4b57-913d-8f673b5eceb1",
+      "Editor Note": "https://schema.metadatacenter.org/properties/d1ceb33d-b777-491a-a584-3810a1d9ab3f",
+      "Created by": "https://schema.metadatacenter.org/properties/91aa48d3-cd57-4b56-81b7-a75ff33c57f0",
+      "References to papers": "https://schema.metadatacenter.org/properties/5a0fa59e-d3e3-41d1-a734-57fb950ae7b8",
+      "Contact email": "https://schema.metadatacenter.org/properties/045be6c2-a26f-4ca8-b0c2-e872036def9a",
+      "Creation date": "https://schema.metadatacenter.org/properties/87af2a5e-2f89-4448-9143-369705fef329",
+      "References to code": "https://schema.metadatacenter.org/properties/1eb8a612-f726-4b6a-aa8f-1ebff646774d",
+      "Software License": "https://schema.metadatacenter.org/properties/cfc3fb18-f0a9-45f3-a9ac-bebae520ac12",
+      "FAIRmodels image name": "https://schema.metadatacenter.org/properties/f75e9b9c-0891-4040-849d-fdc034a35e7d",
+      "Docker image details (exposed port)": "https://schema.metadatacenter.org/properties/7c3bdcc2-6c2e-48f5-b670-880ae1cf743d",
+      "Description": "https://schema.metadatacenter.org/properties/4503a03e-f6f5-476a-88e4-d6c21e114d54",
+      "List of authors": "https://schema.metadatacenter.org/properties/8a996f31-8e01-476f-a8f3-2a0dbb17694f",
+      "Target organ": "https://schema.metadatacenter.org/properties/734771e3-d0f3-4669-ac75-fa8414ef59e3",
+      "Data type": "https://schema.metadatacenter.org/properties/2c2dacaa-e985-477f-906e-5196e7b5c993",
+      "Developed at CDS (Maastro)": "https://schema.metadatacenter.org/properties/f972d84a-c436-4c37-9056-fa6608d909c4",
+      "External validation done": "https://schema.metadatacenter.org/properties/b2660137-c6cc-4076-a13f-00a10e13d32f"
+    },
+    "Title": {
+      "@value": "Decision tree survival prediction model for serous ovarian carcinoma based on preoperative circulating leukocytes [web:1]"
+    },
+    "Description": {
+      "@value": "Supervised machine learning decision tree model predicting overall and progression-free survival in serous ovarian carcinoma using preoperative leukocyte counts, leukocyte differentials, CA-125, clinicopathological factors, and demographic characteristics. [web:1]"
+    },
+    "Editor Note": {
+      "@value": "Ontology URIs and labels should be independently validated by the user; some codes are provisional where explicit NCIT terms were not directly confirmable. [web:1]"
+    },
+    "Created by": {
+      "@value": "https://maastro.nl/department/radiation-oncology/cds-group"
+    },
+    "Creation date": {
+      "@value": "2026-02-25",
+      "@type": "xsd:date"
+    },
+    "Contact email": {
+      "@value": "alberto.traverso@maastro.nl"
+    },
+    "List of authors": {
+      "@value": "Ying Feng; Zhixiang Wang; Ran Cui; Meizhu Xiao; Huiqiao Gao; Huimin Bai; Bert Delvoux; Zhen Zhang; Andre Dekker; Andrea Romano; Shuzhen Wang; Alberto Traverso; Chongdong Liu; Zhenyu Zhang [web:1]"
+    },
+    "Developed at CDS (Maastro)": [
+      {
+        "@value": "Yes [web:1]"
+      }
+    ],
+    "References to papers": [
+      {
+        "@value": "Feng Y, Wang Z, Cui R, et al. Clinical analysis and artificial intelligence survival prediction of serous ovarian cancer based on preoperative circulating leukocytes. Journal of Ovarian Research. 2022;15:64. doi:10.1186/s13048-022-00994-2. [web:1]"
+      }
+    ],
+    "References to code": [
+      {
+        "@value": "Not publicly released; decision tree implemented in Python 3.8 using scikit-learn 0.24 as described in the publication. [web:1]"
+      }
+    ],
+    "Target organ": {
+      "@id": "http://purl.obolibrary.org/obo/UBERON_0000995",
+      "rdfs:label": "ovary"
+    },
+    "Data type": [
+      {
+        "@value": "Tabular clinical and laboratory data (retrospective cohort). [web:1]"
+      }
+    ],
+    "External validation done": [
+      {
+        "@value": "No"
+      }
+    ],
+    "Software License": {},
+    "FAIRmodels image name": {
+      "@value": "feng_serous_ovarian_dt_leukocytes.png"
+    },
+    "Docker image details (exposed port)": {
+      "@value": ""
+    }
+  },
+  "Input data1": [
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C25713",
+        "rdfs:label": "Age"
+      },
+      "Description": {
+        "@value": "Patient age at time of primary cytoreductive surgery (years). [web:1]"
+      },
+      "Input label": {
+        "@value": "Age"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "18",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "90",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C25209",
+        "rdfs:label": "Body Mass Index"
+      },
+      "Description": {
+        "@value": "Body mass index at baseline (kg/m^2). [web:1]"
+      },
+      "Input label": {
+        "@value": "BMI"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "15",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "45",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C25298",
+        "rdfs:label": "White Blood Cell Count"
+      },
+      "Description": {
+        "@value": "Preoperative total white blood cell count within 90 days before surgery (10^6/L). [web:1]"
+      },
+      "Input label": {
+        "@value": "WBC"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "3000",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "20000",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C51951",
+        "rdfs:label": "Neutrophil Count"
+      },
+      "Description": {
+        "@value": "Preoperative absolute neutrophil count (10^6/L). [web:1]"
+      },
+      "Input label": {
+        "@value": "NE"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "1000",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "15000",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C51948",
+        "rdfs:label": "Lymphocyte Count"
+      },
+      "Description": {
+        "@value": "Preoperative absolute lymphocyte count (10^6/L). [web:1]"
+      },
+      "Input label": {
+        "@value": "LY"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "200",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "6000",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C51949",
+        "rdfs:label": "Monocyte Count"
+      },
+      "Description": {
+        "@value": "Preoperative absolute monocyte count (10^6/L). [web:1]"
+      },
+      "Input label": {
+        "@value": "MO"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "100",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "2000",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C51950",
+        "rdfs:label": "Eosinophil Count"
+      },
+      "Description": {
+        "@value": "Preoperative absolute eosinophil count (10^6/L). [web:1]"
+      },
+      "Input label": {
+        "@value": "EO"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "1000",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C51947",
+        "rdfs:label": "Basophil Count"
+      },
+      "Description": {
+        "@value": "Preoperative absolute basophil count (10^6/L). [web:1]"
+      },
+      "Input label": {
+        "@value": "BA"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "500",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C64496",
+        "rdfs:label": "Neutrophil Percentage"
+      },
+      "Description": {
+        "@value": "Preoperative neutrophils as a percentage of total white blood cells. [web:1]"
+      },
+      "Input label": {
+        "@value": "NE%"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "100",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C67111",
+        "rdfs:label": "Lymphocyte Percentage"
+      },
+      "Description": {
+        "@value": "Preoperative lymphocytes as a percentage of total white blood cells. [web:1]"
+      },
+      "Input label": {
+        "@value": "LY%"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "100",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C67110",
+        "rdfs:label": "Monocyte Percentage"
+      },
+      "Description": {
+        "@value": "Preoperative monocytes as a percentage of total white blood cells. [web:1]"
+      },
+      "Input label": {
+        "@value": "MO%"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "50",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C67112",
+        "rdfs:label": "Eosinophil Percentage"
+      },
+      "Description": {
+        "@value": "Preoperative eosinophils as a percentage of total white blood cells. [web:1]"
+      },
+      "Input label": {
+        "@value": "EO%"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "20",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C67109",
+        "rdfs:label": "Basophil Percentage"
+      },
+      "Description": {
+        "@value": "Preoperative basophils as a percentage of total white blood cells. [web:1]"
+      },
+      "Input label": {
+        "@value": "BA%"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "5",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://example.org/ontology/MO_LY_ratio",
+        "rdfs:label": "Monocyte-to-Lymphocyte Ratio"
+      },
+      "Description": {
+        "@value": "Ratio of preoperative monocyte count to lymphocyte count (MO/LY). [web:1]"
+      },
+      "Input label": {
+        "@value": "MO/LY"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "5",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C20496",
+        "rdfs:label": "Cancer Antigen 125 Measurement"
+      },
+      "Description": {
+        "@value": "Serum CA-125 concentration (U/mL) measured preoperatively. [web:1][web:2]"
+      },
+      "Input label": {
+        "@value": "CA125"
+      },
+      "Type of input": {
+        "@value": "n"
+      },
+      "Minimum - for numerical": {
+        "@value": "0",
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "10000",
+        "@type": "xsd:decimal"
+      },
+      "Categories": []
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C28054",
+        "rdfs:label": "Neoplasm Histologic Grade"
+      },
+      "Description": {
+        "@value": "Tumor differentiation grade (G1, G2, G3) from postoperative histopathology. [web:1]"
+      },
+      "Input label": {
+        "@value": "Differentiation status"
+      },
+      "Type of input": {
+        "@value": "c"
+      },
+      "Minimum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Categories": [
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "Well differentiated (G1)"
+          },
+          "Identification for category used in model": {
+            "@value": "G1"
+          }
+        },
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "Moderately/Poorly differentiated (G2+G3)"
+          },
+          "Identification for category used in model": {
+            "@value": "G2G3"
+          }
+        }
+      ]
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C16899",
+        "rdfs:label": "FIGO Stage"
+      },
+      "Description": {
+        "@value": "Disease stage according to the 2014 FIGO ovarian cancer staging system (I–IV). [web:1]"
+      },
+      "Input label": {
+        "@value": "Stage (FIGO 2014)"
+      },
+      "Type of input": {
+        "@value": "c"
+      },
+      "Minimum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Categories": [
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "Stage I+II"
+          },
+          "Identification for category used in model": {
+            "@value": "I_II"
+          }
+        },
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "Stage III+IV"
+          },
+          "Identification for category used in model": {
+            "@value": "III_IV"
+          }
+        }
+      ]
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4878",
+        "rdfs:label": "Lymph Node Metastasis"
+      },
+      "Description": {
+        "@value": "Presence or absence of lymph node metastasis at diagnosis. [web:1]"
+      },
+      "Input label": {
+        "@value": "LNM"
+      },
+      "Type of input": {
+        "@value": "c"
+      },
+      "Minimum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Categories": [
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "No lymph node metastasis"
+          },
+          "Identification for category used in model": {
+            "@value": "0"
+          }
+        },
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "Lymph node metastasis present"
+          },
+          "Identification for category used in model": {
+            "@value": "1"
+          }
+        }
+      ]
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C81932",
+        "rdfs:label": "Ascitic Fluid Cytology"
+      },
+      "Description": {
+        "@value": "Result of ascites cytology (positive/negative for malignant cells). [web:1][web:4]"
+      },
+      "Input label": {
+        "@value": "Ascites cytology"
+      },
+      "Type of input": {
+        "@value": "c"
+      },
+      "Minimum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Categories": [
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "Negative"
+          },
+          "Identification for category used in model": {
+            "@value": "0"
+          }
+        },
+        {
+          "@context": {
+            "Category Label": null,
+            "Identification for category used in model": null
+          },
+          "Category Label": {
+            "@value": "Positive"
+          },
+          "Identification for category used in model": {
+            "@value": "1"
+          }
+        }
+      ]
+    }
+  ],
+  "Outcome": {
+    "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C48288",
+    "rdfs:label": "Overall Survival"
+  },
+  "Outcome label": {
+    "@value": "Overall survival (OS) at follow-up after primary cytoreductive surgery for serous ovarian carcinoma. [web:1]"
+  },
+  "Outcome type": {
+    "@value": "P"
+  },
+  "Applicability criteria": [
+    {
+      "@value": "Adult patients with histologically confirmed serous ovarian carcinoma (serous cystadenocarcinoma or high-grade serous cystadenocarcinoma) treated with primary cytoreductive surgery at Beijing Chaoyang Hospital (2009–2018) and standard platinum-based chemotherapy, with complete preoperative routine blood tests within 90 days and clinical data available. [web:1]"
+    }
+  ],
+  "Foundational model or algorithm used": {
+    "@id": "https://scikit-learn.org/stable/modules/tree.html",
+    "rdfs:label": "Decision Tree Classifier (CART)"
+  },
+  "Primary intended use(s)": [
+    {
+      "@value": "Preoperative prognostic stratification of serous ovarian carcinoma patients based on routine blood tests and clinicopathologic factors to estimate survival probability. [web:1]"
+    }
+  ],
+  "Primary intended users": [
+    {
+      "@value": "Gynecologic oncologists, radiation oncologists, clinical researchers, and multidisciplinary tumor boards. [web:1]"
+    }
+  ],
+  "Out-of-scope use cases": [
+    {
+      "@value": "Prediction in non-serous ovarian cancers, other primary tumor sites, patients without standard platinum-based chemotherapy, or use for treatment selection without clinical oversight. [web:1]"
+    }
+  ],
+  "Data": [
+    {
+      "@value": "Retrospective single-center cohort of 98 patients with serous ovarian carcinoma and 75 uterine prolapse controls; 93 patients with homogeneous first-line platinum-based chemotherapy regimen used for decision tree training. [web:1]"
+    }
+  ],
+  "Human life": [
+    {
+      "@value": "Model outputs can influence risk stratification discussions but must not be used as the sole basis for life-critical decisions; human clinical judgment remains essential. [web:1]"
+    }
+  ],
+  "Mitigations": [
+    {
+      "@value": "Use only as a decision-support tool alongside established prognostic factors and guidelines; validate locally before deployment; regularly monitor calibration and discrimination; restrict to populations similar to the development cohort; clearly communicate uncertainty and AUC=0.69 performance to users. [web:1]"
+    }
+  ],
+  "Risks and harms": [
+    {
+      "@value": "Potential misclassification of high- or low-risk patients due to modest AUC (0.69), small sample size, and single-center data, which could lead to over- or under-treatment if used without caution. [web:1]"
+    }
+  ],
+  "Use cases": {
+    "@value": "Research-oriented prognostic modeling, hypothesis generation about leukocyte-based biomarkers, and exploratory risk stratification in serous ovarian carcinoma prior to larger external validation. [web:1]"
+  },
+  "Additional concerns": {
+    "@value": "Leukocyte profiles may change significantly after surgery and chemotherapy, limiting the model to preoperative use; lack of external validation; absence of detailed handling of missing data and potential confounders. [web:1]"
+  },
+  "Previous model tests1": [
+    {
+      "@context": {
+        "Performance metric": "https://schema.metadatacenter.org/properties/f95c7b9f-a5bc-410b-ad38-d719a3044fe4",
+        "Link to dataset": "https://schema.metadatacenter.org/properties/d750fe0d-6813-4536-a918-bd9218f472bf",
+        "Link to reference paper": "https://schema.metadatacenter.org/properties/d59a2224-fbe8-4380-b66b-a2cc05c6b3ae",
+        "Notes": "https://schema.metadatacenter.org/properties/c6428800-ffc3-41b6-986a-3a95ae936c6e"
+      },
+      "Performance metric": [
+        {
+          "@context": {
+            "Metric Label": "https://schema.metadatacenter.org/properties/f247f273-151f-4c1d-bd69-8ed6a728ed33",
+            "Measured metric (mean value)": "https://schema.metadatacenter.org/properties/e6a0cec6-e37d-431c-8480-e3eba2f0d071",
+            "Acceptance level": "https://schema.metadatacenter.org/properties/668d9bbc-ae81-4af0-a11e-7a401c409f98",
+            "Additional information (if needed)": "https://schema.metadatacenter.org/properties/cbcf4b91-fcb5-4462-8eae-77cba960c0e0",
+            "Measured metric (lower bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/d93c93b8-f1ce-4d2b-b78d-1b0f2d0c1ef2",
+            "Measured metric (upper bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/5aa71926-22e4-4628-b563-5c116fd8f67e"
+          },
+          "Metric Label": {
+            "@value": "Area Under the ROC Curve for survival prediction (decision tree with leukocyte features). [web:1]"
+          },
+          "Measured metric (mean value)": {
+            "@value": "0.69",
+            "@type": "xsd:decimal"
+          },
+          "Measured metric (lower bound of the 95% confidence interval)": {
+            "@value": "0.67",
+            "@type": "xsd:decimal"
+          },
+          "Measured metric (upper bound of the 95% confidence interval)": {
+            "@value": "0.70"
+          },
+          "Acceptance level": {
+            "@value": "0.70",
+            "@type": "xsd:decimal"
+          },
+          "Additional information (if needed)": {
+            "@value": "Tenfold cross-validation; comparison logistic regression model achieved AUC 0.55 (95% CI 0.53–0.57). [web:1]"
+          }
+        }
+      ],
+      "Link to dataset": {
+        "@value": "Not publicly available; held at Beijing Chaoyang Hospital, Capital Medical University, with access on reasonable request. [web:1]"
+      },
+      "Link to reference paper": {
+        "@value": "https://doi.org/10.1186/s13048-022-00994-2 [web:1]"
+      },
+      "Notes": {
+        "@value": "Model performance assessed internally using tenfold cross-validation on 93 patients receiving the same first-line chemotherapy regimen. [web:1]"
+      }
+    }
+  ],
+  "Evaluation results1": [
+    {
+      "@context": {
+        "Performance metric": "https://schema.metadatacenter.org/properties/e3fc4bb2-5c13-4ac5-9dbd-1ec0b6b1c406",
+        "sha256 of docker image": "https://schema.metadatacenter.org/properties/bf01e549-190e-4429-8a97-4880e2144968",
+        "user/hospital": "https://schema.metadatacenter.org/properties/1f03bb07-331b-4675-bbe6-6605eeaceabd",
+        "User Note": "https://schema.metadatacenter.org/properties/59fd38ff-bb00-4ef7-9283-3f7dfbd296c6",
+        "Dataset characteristics": "https://schema.metadatacenter.org/properties/dc4a07fc-2645-4c70-9330-3e249031f046"
+      },
+      "sha256 of docker image": {
+        "@value": null
+      },
+      "user/hospital": {
+        "@value": null
+      },
+      "Performance metric": [
+        {
+          "@context": {
+            "Metric Label": "https://schema.metadatacenter.org/properties/f247f273-151f-4c1d-bd69-8ed6a728ed33",
+            "Measured metric (mean value)": "https://schema.metadatacenter.org/properties/e6a0cec6-e37d-431c-8480-e3eba2f0d071",
+            "Acceptance level": "https://schema.metadatacenter.org/properties/668d9bbc-ae81-4af0-a11e-7a401c409f98",
+            "Additional information (if needed)": "https://schema.metadatacenter.org/properties/cbcf4b91-fcb5-4462-8eae-77cba960c0e0",
+            "Measured metric (lower bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/d93c93b8-f1ce-4d2b-b78d-1b0f2d0c1ef2",
+            "Measured metric (upper bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/5aa71926-22e4-4628-b563-5c116fd8f67e"
+          },
+          "Metric Label": {},
+          "Measured metric (mean value)": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Measured metric (lower bound of the 95% confidence interval)": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Measured metric (upper bound of the 95% confidence interval)": {
+            "@value": null
+          },
+          "Acceptance level": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Additional information (if needed)": {
+            "@value": null
+          }
+        }
+      ],
+      "User Note": {
+        "@value": null
+      },
+      "Dataset characteristics": [
+        {
+          "@context": {
+            "Input feature": "https://schema.metadatacenter.org/properties/f53523d7-aa41-46c2-b8ab-39772bce6037",
+            "Volume": "https://schema.metadatacenter.org/properties/3aaeb721-75db-4257-915f-3b49a2f9b5b9",
+            "The characteristics of dataset": "https://schema.metadatacenter.org/properties/105fdab7-6612-4209-bc80-3def1013a9a1",
+            "Number of missing values": "https://schema.metadatacenter.org/properties/e3a95563-8ac6-4cd3-b9df-23412bc0283c",
+            "Categories distribution": "https://schema.metadatacenter.org/properties/19741c6b-354a-47bd-a934-9b96a747b5b6",
+            "The number of subject for evaluation": "https://schema.metadatacenter.org/properties/ce4ca156-2fc2-4072-8c8e-9b8c29016c18",
+            "The mean value - for numerical feature": "https://schema.metadatacenter.org/properties/0b258d16-e907-4f5b-9ff3-1d77d20fdabb",
+            "The lower bound of the 95% confidence interval": "https://schema.metadatacenter.org/properties/0f2bc2b0-37e6-4392-aec1-41c86a61d009",
+            "The upper bound of the  95% confidence interval": "https://schema.metadatacenter.org/properties/ea2134fc-80dc-44df-9120-1b8be9f5c089"
+          },
+          "Input feature": {},
+          "Volume": {
+            "@value": null
+          },
+          "Number of missing values": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "The characteristics of dataset": {},
+          "The number of subject for evaluation": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "The mean value - for numerical feature": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "The lower bound of the 95% confidence interval": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "The upper bound of the  95% confidence interval": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Categories distribution": [
+            {
+              "@context": {
+                "Category Label": "https://schema.metadatacenter.org/properties/e6cf70d0-7e05-4122-b318-b4d93ee63c86",
+                "Distribution for category": "https://schema.metadatacenter.org/properties/0ff233ed-291e-40d4-96b1-ef71bd5d5871"
+              },
+              "Category Label": {},
+              "Distribution for category": {
+                "@value": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "schema:isBasedOn": "https://repo.metadatacenter.org/templates/e1c5e285-a2e6-43df-9bfa-1de71f6a59e3",
+  "pav:createdOn": "2026-02-25T00:00:00Z",
+  "pav:lastUpdatedOn": "2026-02-25T00:00:00Z",
+  "@id": "https://v3.fairmodels.org/instance/5f9e5e4a-8a8c-4f7d-bf4c-0c7e0c0c9f11"
+}

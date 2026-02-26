@@ -1,0 +1,64 @@
+```json
+{
+  "@context": {
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "pav": "http://purl.org/pav/",
+    "schema": "http://schema.org/",
+    "oslc": "http://open-services.net/ns/core#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "rdfs:label": {
+      "@type": "xsd:string"
+    },
+    "schema:isBasedOn": {
+      "@type": "@id"
+    },
+    "schema:name": {
+      "@type": "xsd:string"
+    },
+    "schema:description": {
+      "@type": "xsd:string"
+    },
+    "pav:derivedFrom": {
+      "@type": "@id"
+    },
+    "pav:createdOn": {
+      "@type": "xsd:dateTime"
+    },
+    "pav:createdBy": {
+      "@type": "@id"
+    },
+    "pav:lastUpdatedOn": {
+      "@type": "xsd:dateTime"
+    },
+    "oslc:modifiedBy": {
+      "@type": "@id"
+    },
+    "skos:notation": {
+      "@type": "xsd:string"
+    },
+    "General Model Information": "https://schema.metadatacenter.org/properties/61b8809b-12c4-44e8-8a51-cfcfd13fc87d",
+    "Outcome": "https://schema.metadatacenter.org/properties/e45d35b4-90a1-4da5-96d8-d11c947a88a4",
+    "Applicability criteria": "https://schema.metadatacenter.org/properties/80f4b20e-9da8-493c-a380-10859551014f",
+    "Foundational model or algorithm used": "https://schema.metadatacenter.org/properties/f9370862-b55f-4e91-b4c5-4d216ee38d6b",
+    "Primary intended use(s)": "https://schema.metadatacenter.org/properties/15e1ff32-aa1d-4318-a818-f7de336469d6",
+    "Primary intended users": "https://schema.metadatacenter.org/properties/60e22218-fc13-4d44-b115-77310f8e7501",
+    "Out-of-scope use cases": "https://schema.metadatacenter.org/properties/3ce0ea76-1209-4f15-bdf3-d728b38b55ef",
+    "Data": "https://schema.metadatacenter.org/properties/eb491acc-f4a5-4e9e-8c3d-62a7e30099af",
+    "Human life": "https://schema.metadatacenter.org/properties/d0ffc5a7-bd62-4187-b2f0-07a66f897837",
+    "Mitigations": "https://schema.metadatacenter.org/properties/a00fcb24-bbc0-4689-aabd-c54792413a16",
+    "Risks and harms": "https://schema.metadatacenter.org/properties/4feab147-4d43-434e-a340-7970e695eb2c",
+    "Use cases": "https://schema.metadatacenter.org/properties/a6e4f2d0-50bc-403a-a969-568b11a5c509",
+    "Additional concerns": "https://schema.metadatacenter.org/properties/4ee36e81-2af5-4128-9ec0-048349f3665c",
+    "Outcome label": "https://schema.metadatacenter.org/properties/a39ebe1a-2c26-46db-b6cc-0be37dc898ee",
+    "Previous model tests1": "https://schema.metadatacenter.org/properties/a54b4b1b-6aaf-480e-8dc5-69f950f7a478",
+    "Evaluation results1": "https://schema.metadatacenter.org/properties/1626b87c-50af-4d44-940b-37dddb12d116",
+    "Input data1": "https://schema.metadatacenter.org/properties/64dd7e02-def4-4d72-b1e1-d7402998fdb5",
+    "Outcome type": "https://schema.metadatacenter.org/properties/63c117c6-dcdb-48e5-bd00-916ba7964f08"
+  },
+  "General Model Information": {
+    "@context": {
+      "Title": "https://schema.metadatacenter.org/properties/6610ba27-0f64-4b57-913d-8f673b5eceb1",
+      "Editor Note": "https://schema.metadatacenter.org/properties/d1ceb33d-b777-491a-a584-3810a1d9ab3f",
+      "Created by": "https://schema.metadatacenter.org/properties/91aa48d3-cd57-4b56-81b7-a75ff33c57f0",
+      "References to papers": "https://schema.metadatacenter.org/properties

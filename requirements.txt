@@ -9,3 +9,9 @@ tzlocal==5.2
 
 Authlib==1.4.1
 python-dotenv==1.0.1
+perplexityai==0.29.1
+pypdf==6.7.2
+rich==14.3.3
+networkx==3.6.1
+matplotlib==3.10.8
+pyvis==0.3.2
