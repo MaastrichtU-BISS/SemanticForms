@@ -33,6 +33,9 @@
     <div class="col-md-8">
         {% if project_template %}
         <!-- Use CEDAR embeddable editor for project metadata -->
+        <link rel="stylesheet" href="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.css">
+        <script type="text/javascript" src="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.js"></script>
+        
         <div class="card">
             <div class="card-header">
                 <h5>Project Metadata Form</h5>
@@ -42,33 +45,41 @@
             </div>
         </div>
         
-        <script type="text/javascript" src="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.js"></script>
-        <link rel="stylesheet" href="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.css">
-        
         <script>
-            var cedarEmbeddableEditor = new CEDAREmbeddableEditor();
-            cedarEmbeddableEditor.init({
-                'terminology.integrated.enabled': true,
-                'terminology.integrated.bioportal.apikey': '{{ bioportal_api_key }}',
-                'terminology.integrated.bioportal.enabled': true
+            // Wait for CEDAR library to load
+            window.addEventListener('load', function() {
+                var cedarEmbeddableEditor = new CEDAREmbeddableEditor();
+                cedarEmbeddableEditor.init({
+                    'terminology.integrated.enabled': true,
+                    'terminology.integrated.bioportal.apikey': '{{ bioportal_api_key }}',
+                    'terminology.integrated.bioportal.enabled': true
+                });
+
+                var appContext = {};
+                var editorConfig = {
+                    'environment': 'all',
+                    'termsOfUse': 'hide'
+                };
+
+                cedarEmbeddableEditor.buildEmbeddableEditor(
+                    document.getElementById('cedar-embeddable-editor'),
+                    appContext,
+                    editorConfig,
+                    {{ project_template | tojson }},
+                    null
+                );
+                
+                // Make editor globally accessible for submit function
+                window.cedarEmbeddableEditor = cedarEmbeddableEditor;
             });
-
-            var appContext = {};
-            var editorConfig = {
-                'environment': 'all',
-                'termsOfUse': 'hide'
-            };
-
-            cedarEmbeddableEditor.buildEmbeddableEditor(
-                document.getElementById('cedar-embeddable-editor'),
-                appContext,
-                editorConfig,
-                {{ project_template | tojson }},
-                null
-            );
             
             function submitProject() {
-                var formData = cedarEmbeddableEditor.getFormJSON();
+                if (!window.cedarEmbeddableEditor) {
+                    alert('Editor is still loading. Please wait a moment and try again.');
+                    return;
+                }
+                
+                var formData = window.cedarEmbeddableEditor.getFormJSON();
                 
                 // Extract project name from metadata
                 var projectName = "New Project";

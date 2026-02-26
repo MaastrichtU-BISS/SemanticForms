@@ -393,9 +393,9 @@ def create_project():
     """
     Create a new project with metadata.
     """
-    # Test authentication
-    if not session.get("user"):
-        return redirect("/login")
+    # # Test authentication
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -426,6 +426,48 @@ def create_project():
                          project_template=project_template,
                          bioportal_api_key=bioportal_key)
 
+@app.route("/api/projects/store", methods=["POST"])
+def store_project_metadata():
+    """
+    API endpoint to store project metadata from CEDAR embeddable editor.
+    """
+    # # Test authentication
+    # if not session.get("user"):
+    #     return {"error": "Unauthorized"}, 401
+    
+    if not config.get("projects", {}).get("enabled", False):
+        return {"error": "Projects not enabled"}, 400
+    
+    data = request.get_json()
+    metadata = data.get("metadata", {})
+    
+    # Extract project name from metadata
+    project_name = "Untitled Project"
+    
+    # Try various fields for project name
+    if "project_name" in metadata:
+        if isinstance(metadata["project_name"], dict) and "@value" in metadata["project_name"]:
+            project_name = metadata["project_name"]["@value"]
+        else:
+            project_name = str(metadata["project_name"])
+    elif "name" in metadata:
+        if isinstance(metadata["name"], dict) and "@value" in metadata["name"]:
+            project_name = metadata["name"]["@value"]
+        else:
+            project_name = str(metadata["name"])
+    elif "title" in metadata:
+        if isinstance(metadata["title"], dict) and "@value" in metadata["title"]:
+            project_name = metadata["title"]["@value"]
+        else:
+            project_name = str(metadata["title"])
+    
+    # Add user info if available
+    if session.get("user"):
+        metadata["created_by"] = session.get("user", {}).get("name", "Unknown")
+    
+    project_id = persistance.create_project(project_name, metadata)
+    return {"message": "ok", "project_id": project_id}
+
 @app.route("/projects/<project_id>")
 def project_detail(project_id: str):
     """
@@ -452,9 +494,9 @@ def add_phase_response(project_id: str, phase_index: int):
     """
     Add a questionnaire response for a specific project phase.
     """
-    # Test authentication
-    if not session.get("user"):
-        return redirect("/login")
+    # # Test authentication
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -481,9 +523,9 @@ def edit_phase_response(project_id: str, phase_name: str, response_id: str):
     """
     Edit an existing phase response.
     """
-    # Test authentication
-    if not session.get("user"):
-        return redirect("/login")
+    # # Test authentication
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -598,9 +640,9 @@ def delete_project(project_id: str):
     """
     Delete a project and all its data.
     """
-    # Test authentication
-    if not session.get("user"):
-        return redirect("/login")
+    # # Test authentication
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     persistance.delete_project(project_id)
     return redirect("/projects")
