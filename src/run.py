@@ -515,15 +515,61 @@ def view_phase_response(project_id: str, phase_name: str, response_id: str):
 def project_detail(project_id: str):
     """
     Show project details and phases.
+    Supports multiple output formats via content negotiation.
     """
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
     
     try:
         project = persistance.get_project(project_id, config)
+        project_metadata = project["metadata"]
         phases = config.get("projects", {}).get("phases", [])
         phase_responses = persistance.get_project_phase_responses(project_id)
         
+        # Handle different response formats via content negotiation
+        # For non-HTML formats, include both project metadata and references to phase responses
+        if "application/n-triples" in request.accept_mimetypes.best or \
+           "application/json" in request.accept_mimetypes.best or \
+           "application/ld+json" in request.accept_mimetypes.best or \
+           "application/rdf+xml" in request.accept_mimetypes.best:
+            
+            # Create comprehensive project data with references to phase responses
+            comprehensive_data = {
+                "@context": project_metadata.get("@context", {}),
+                "@id": project_metadata.get("@id"),
+                "@type": "Project",
+                "project_metadata": project_metadata,
+                "phases": []
+            }
+            
+            # Add references to phase responses (not full content)
+            for phase_name, responses in phase_responses.items():
+                phase_data = {
+                    "phase_name": phase_name,
+                    "responses": [response["data"].get("@id") for response in responses if "@id" in response["data"]]
+                }
+                comprehensive_data["phases"].append(phase_data)
+            
+            # Return in requested format
+            if "application/n-triples" in request.accept_mimetypes.best:
+                g = Graph()
+                g.parse(data=json.dumps(comprehensive_data), format='json-ld')
+                ntriples = g.serialize(format='nt')
+                return Response(ntriples, mimetype='application/n-triples')
+            
+            if "application/json" in request.accept_mimetypes.best:
+                return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/json')
+            
+            if "application/ld+json" in request.accept_mimetypes.best:
+                return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/ld+json')
+            
+            if "application/rdf+xml" in request.accept_mimetypes.best:
+                g = Graph()
+                g.parse(data=json.dumps(comprehensive_data), format='json-ld')
+                rdfxml = g.serialize(format='xml')
+                return Response(rdfxml, mimetype='application/rdf+xml')
+        
+        # Default: render HTML view
         return render_template("project_detail.html", 
                              project=project,
                              phases=phases,
