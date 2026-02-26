@@ -96,7 +96,16 @@
 </style>
 
 <div class="container mt-4">
+    {% if is_project_mode and project_id and phase_name %}
+    <h1>{{ 'Edit' if formData else 'Add' }} Questionnaire</h1>
+    <div class="alert alert-info mb-4">
+        <strong>Phase:</strong> {{ phase_name }}
+        <br>
+        <a href="/projects/{{ project_id }}" class="btn btn-sm btn-outline-primary mt-2">← Back to Project</a>
+    </div>
+    {% else %}
     <h1>{{ 'Edit Form' if formData else 'Add New Form' }}</h1>
+    {% endif %}
     
     <div id="form-container" class="mt-4">
         <!-- Form will be dynamically generated here -->
@@ -1681,7 +1690,16 @@
         };
 
         const method = formInfo ? 'PUT' : 'POST';
-        const url = window.location.origin + '/api/cedar/store';
+        
+        // Determine URL based on project mode
+        let url;
+        {% if is_project_mode and project_id and phase_name %}
+        // Project mode: use project-specific endpoint
+        url = window.location.origin + '/api/projects/{{ project_id }}/phase/{{ phase_name }}/store';
+        {% else %}
+        // Standard mode: use regular endpoint
+        url = window.location.origin + '/api/cedar/store';
+        {% endif %}
 
         fetch(url, {
             method: method,
@@ -1693,7 +1711,13 @@
         })
         .then(response => {
             if (response.ok) {
+                {% if is_project_mode and project_id %}
+                // Redirect back to project detail page
+                window.location.href = '/projects/{{ project_id }}';
+                {% else %}
+                // Redirect to home page
                 window.location.href = '/';
+                {% endif %}
             } else {
                 alert('An error occurred while saving the form. Please try again.');
             }

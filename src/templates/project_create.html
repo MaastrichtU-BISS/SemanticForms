@@ -1,0 +1,156 @@
+{% extends "layout.html" %}
+
+{% block sidebar %}
+<!-- Create Project Sidebar -->
+<div class="sidebar-header">
+    <h5 class="mb-0">➕ New Project</h5>
+    <small class="text-muted">Create a multi-phase project</small>
+</div>
+<div class="sidebar-content">
+    <div class="mb-3">
+        <a href="/projects" class="btn btn-sm btn-outline-secondary btn-block">
+            ← Back to Projects
+        </a>
+    </div>
+    
+    <hr>
+    
+    <div class="mt-3">
+        <h6 class="font-weight-bold">About Projects</h6>
+        <p><small>Projects allow you to organize questionnaires across multiple phases, tracking your progress through different stages of work.</small></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Create New Project</h1>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        {% if project_template %}
+        <!-- Use CEDAR embeddable editor for project metadata -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Project Metadata Form</h5>
+            </div>
+            <div class="card-body">
+                <div id="cedar-embeddable-editor"></div>
+            </div>
+        </div>
+        
+        <script type="text/javascript" src="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.js"></script>
+        <link rel="stylesheet" href="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.css">
+        
+        <script>
+            var cedarEmbeddableEditor = new CEDAREmbeddableEditor();
+            cedarEmbeddableEditor.init({
+                'terminology.integrated.enabled': true,
+                'terminology.integrated.bioportal.apikey': '{{ bioportal_api_key }}',
+                'terminology.integrated.bioportal.enabled': true
+            });
+
+            var appContext = {};
+            var editorConfig = {
+                'environment': 'all',
+                'termsOfUse': 'hide'
+            };
+
+            cedarEmbeddableEditor.buildEmbeddableEditor(
+                document.getElementById('cedar-embeddable-editor'),
+                appContext,
+                editorConfig,
+                {{ project_template | tojson }},
+                null
+            );
+            
+            function submitProject() {
+                var formData = cedarEmbeddableEditor.getFormJSON();
+                
+                // Extract project name from metadata
+                var projectName = "New Project";
+                if (formData["@context"] && formData["project_name"]) {
+                    projectName = formData["project_name"]["@value"] || projectName;
+                }
+                
+                // Submit to server
+                fetch('/api/projects/store', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        metadata: formData
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.project_id) {
+                        window.location.href = '/projects/' + data.project_id;
+                    } else {
+                        alert('Error creating project');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error creating project');
+                });
+            }
+        </script>
+        
+        <div class="mt-3">
+            <button onclick="submitProject()" class="btn btn-primary">Create Project</button>
+            <a href="/projects" class="btn btn-secondary">Cancel</a>
+        </div>
+        
+        {% else %}
+        <!-- Simple form for project creation -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Project Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/projects/create">
+                    <div class="form-group">
+                        <label for="project_name">Project Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="project_name" name="project_name" 
+                               placeholder="Enter project name" required>
+                        <small class="form-text text-muted">A descriptive name for your project</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" 
+                                  placeholder="Optional project description"></textarea>
+                        <small class="form-text text-muted">Provide additional context about this project</small>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Create Project</button>
+                        <a href="/projects" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">What happens next?</h6>
+                <ol class="small">
+                    <li>Your project will be created with a unique identifier</li>
+                    <li>You can add questionnaires for each project phase</li>
+                    <li>Track progress through all phases</li>
+                    <li>All data is stored as JSON-LD files</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

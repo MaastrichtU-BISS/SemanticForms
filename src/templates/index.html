@@ -69,6 +69,14 @@
 
 {% block content %}
 <h1>Filled Templates</h1>
+
+{% if is_project_mode %}
+<div class="alert alert-info mb-3">
+    <strong>Note:</strong> Project mode is enabled. 
+    <a href="/projects" class="btn btn-sm btn-primary">Go to Projects</a>
+</div>
+{% endif %}
+
 <div class="row">
     <div class="col-md-12">
         <p>Please see below for all filled forms. To add a new form, login to the system and press the "add" button to fill in the template.</p>

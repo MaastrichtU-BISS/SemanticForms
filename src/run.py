@@ -75,6 +75,11 @@ def render_template(
 
 @app.route("/")
 def index():
+    # Check if project mode is enabled
+    if config.get("projects", {}).get("enabled", False):
+        # Redirect to projects page
+        return redirect("/projects")
+    
     # Get search query from URL parameters
     search_query = request.args.get('search', '')
     
@@ -173,9 +178,9 @@ def logout():
 
 @app.route("/add")
 def cee():
-    # Test authentication or send HTTP 401 error
-    if not session.get("user"):
-        return redirect("/login")
+    # # Test authentication or send HTTP 401 error
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     bioportal_key = config.get("bioportal", {}).get("api_key", "")
     return render_template("form.html", 
@@ -184,9 +189,9 @@ def cee():
 
 @app.route("/instance/<identifier>/edit")
 def edit_cee(identifier: str):
-    # Test authentication or to login page
-    if not session.get("user"):
-        return redirect("/login")
+    # # Test authentication or to login page
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     if identifier:
         print(f"Loading instance from file: {identifier}")
@@ -357,6 +362,373 @@ def store():
     persistance.save_instance(data_to_store_meta)
 
     return {"message": "ok"}
+
+# ============================================
+# Project Management Routes
+# ============================================
+
+@app.route("/projects")
+def projects_list():
+    """
+    List all projects. This is the main page in project mode.
+    """
+    # Check if projects are enabled
+    if not config.get("projects", {}).get("enabled", False):
+        # If projects not enabled, redirect to standard index
+        return redirect("/instances")
+    
+    projects = persistance.get_all_projects()
+    
+    # Sort projects by creation date (newest first)
+    projects_sorted = dict(sorted(projects.items(), 
+                                 key=lambda item: item[1].get('created_on', ''), 
+                                 reverse=True))
+    
+    return render_template("projects.html", projects=projects_sorted)
+
+@app.route("/projects/create", methods=["GET", "POST"])
+def create_project():
+    """
+    Create a new project with metadata.
+    """
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
+    
+    if not config.get("projects", {}).get("enabled", False):
+        return redirect("/")
+    
+    if request.method == "POST":
+        project_name = request.form.get("project_name")
+        if not project_name:
+            return render_template("project_create.html", error="Project name is required")
+        
+        # Create basic project metadata
+        project_metadata = {
+            "project_name": project_name,
+            "description": request.form.get("description", ""),
+            "created_by": session.get("user", {}).get("name", "Unknown")
+        }
+        
+        project_id = persistance.create_project(project_name, project_metadata)
+        return redirect(f"/projects/{project_id}")
+    
+    # GET request - show form
+    # Check if there's a project metadata template configured
+    project_template = None
+    if "project_metadata_template" in config.get("projects", {}):
+        project_template = get_template_by_config(config["projects"]["project_metadata_template"])
+    
+    bioportal_key = config.get("bioportal", {}).get("api_key", "")
+    return render_template("project_create.html", 
+                         project_template=project_template,
+                         bioportal_api_key=bioportal_key)
+
+@app.route("/projects/<project_id>")
+def project_detail(project_id: str):
+    """
+    Show project details and phases.
+    """
+    if not config.get("projects", {}).get("enabled", False):
+        return redirect("/")
+    
+    try:
+        project = persistance.get_project(project_id)
+        phases = config.get("projects", {}).get("phases", [])
+        phase_responses = persistance.get_project_phase_responses(project_id)
+        
+        return render_template("project_detail.html", 
+                             project=project,
+                             phases=phases,
+                             phase_responses=phase_responses)
+    except Exception as e:
+        logging.error(f"Error loading project {project_id}: {e}")
+        return redirect("/projects")
+
+@app.route("/projects/<project_id>/phase/<int:phase_index>/add")
+def add_phase_response(project_id: str, phase_index: int):
+    """
+    Add a questionnaire response for a specific project phase.
+    """
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
+    
+    if not config.get("projects", {}).get("enabled", False):
+        return redirect("/")
+    
+    # Get phase configuration
+    phases = config.get("projects", {}).get("phases", [])
+    if phase_index >= len(phases):
+        return redirect(f"/projects/{project_id}")
+    
+    phase = phases[phase_index]
+    phase_template = get_template_by_config(phase.get("template", {}))
+    
+    bioportal_key = config.get("bioportal", {}).get("api_key", "")
+    return render_template("form.html",
+                         templateObject=phase_template,
+                         bioportal_api_key=bioportal_key,
+                         project_id=project_id,
+                         phase_name=phase.get("name"),
+                         phase_index=phase_index,
+                         is_project_mode=True)
+
+@app.route("/projects/<project_id>/phase/<phase_name>/response/<response_id>/edit")
+def edit_phase_response(project_id: str, phase_name: str, response_id: str):
+    """
+    Edit an existing phase response.
+    """
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
+    
+    if not config.get("projects", {}).get("enabled", False):
+        return redirect("/")
+    
+    # Load the response
+    phase_responses = persistance.get_project_phase_responses(project_id)
+    response_data = None
+    response_file = None
+    
+    for phase, responses in phase_responses.items():
+        for resp in responses:
+            if resp["id"] == response_id:
+                response_data = resp["data"]
+                response_file = resp["filename"]
+                break
+        if response_data:
+            break
+    
+    if not response_data:
+        return redirect(f"/projects/{project_id}")
+    
+    # Find phase index to get template
+    phases = config.get("projects", {}).get("phases", [])
+    phase_index = 0
+    phase_template = None
+    
+    for idx, phase in enumerate(phases):
+        if phase.get("name") == phase_name:
+            phase_index = idx
+            phase_template = get_template_by_config(phase.get("template", {}))
+            break
+    
+    if not phase_template:
+        return redirect(f"/projects/{project_id}")
+    
+    # Prepare form info
+    infoData = {
+        "isBasedOn": response_data.get("schema:isBasedOn", ""),
+        "id": response_data.get("@id", ""),
+        "createdOn": response_data.get("pav:createdOn", ""),
+        "fileName": response_file,
+        "project_id": project_id,
+        "phase_name": phase_name,
+        "phase_index": phase_index
+    }
+    
+    # Remove metadata fields for form
+    form_data = response_data.copy()
+    for key in ["@id", "pav:createdOn", "schema:isBasedOn", "project_phase", "project_id", "pav:lastUpdatedOn"]:
+        form_data.pop(key, None)
+    
+    bioportal_key = config.get("bioportal", {}).get("api_key", "")
+    return render_template("form.html",
+                         templateObject=phase_template,
+                         formData=form_data,
+                         formInfo=infoData,
+                         bioportal_api_key=bioportal_key,
+                         project_id=project_id,
+                         phase_name=phase_name,
+                         phase_index=phase_index,
+                         is_project_mode=True)
+
+@app.route("/api/projects/<project_id>/phase/<phase_name>/store", methods=["POST", "PUT"])
+def store_project_phase():
+    """
+    Store a questionnaire response for a project phase.
+    """
+    project_id = request.view_args.get("project_id")
+    phase_name = request.view_args.get("phase_name")
+    
+    data_to_store = request.get_json()
+    data_to_store_meta = data_to_store["metadata"]
+    
+    # Get phase configuration to retrieve template
+    phases = config.get("projects", {}).get("phases", [])
+    phase_template = None
+    for phase in phases:
+        if phase.get("name") == phase_name:
+            phase_template = get_template_by_config(phase.get("template", {}))
+            break
+    
+    if request.method == "POST":
+        # New response
+        if phase_template and "@id" in phase_template:
+            data_to_store_meta["schema:isBasedOn"] = phase_template["@id"]
+        
+        response_id = persistance.save_project_phase_response(
+            project_id, 
+            phase_name, 
+            data_to_store_meta
+        )
+        return {"message": "ok", "response_id": response_id}
+    else:
+        # Update existing response
+        data_to_store_info = data_to_store.get("info", {})
+        if "id" in data_to_store_info:
+            data_to_store_meta["@id"] = data_to_store_info["id"]
+        if "isBasedOn" in data_to_store_info:
+            data_to_store_meta["schema:isBasedOn"] = data_to_store_info["isBasedOn"]
+        if "createdOn" in data_to_store_info:
+            data_to_store_meta["pav:createdOn"] = data_to_store_info["createdOn"]
+        
+        response_id = persistance.save_project_phase_response(
+            project_id,
+            phase_name,
+            data_to_store_meta
+        )
+        return {"message": "ok", "response_id": response_id}
+
+@app.route("/projects/<project_id>/delete", methods=["POST"])
+def delete_project(project_id: str):
+    """
+    Delete a project and all its data.
+    """
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
+    
+    persistance.delete_project(project_id)
+    return redirect("/projects")
+
+@app.route("/instances")
+def instances_list():
+    """
+    Show instances list (legacy mode or when projects are disabled).
+    This is the original index behavior.
+    """
+    # Get search query from URL parameters
+    search_query = request.args.get('search', '')
+    
+    # Get sort parameters
+    sort_by = request.args.get('sort', '')
+    sort_order = request.args.get('order', 'asc')  # asc or desc
+    
+    # Get filter parameters
+    filters = {}
+    table_columns = config.get("tableColumns", [])
+    
+    for column in table_columns:
+        filter_value = request.args.get(f"filter_{column['property']}", '')
+        if filter_value:
+            filters[column['property']] = filter_value
+    
+    # Get instances with properties extracted based on table columns
+    instances = persistance.get_instances_with_properties(
+        search_query if search_query.strip() else None, 
+        table_columns
+    )
+    
+    # Apply property filters
+    if filters:
+        filtered_instances = {}
+        for instance_id, instance_data in instances.items():
+            include_instance = True
+            for prop, filter_value in filters.items():
+                instance_value = instance_data.get('properties', {}).get(prop, '')
+                if filter_value.lower() not in str(instance_value).lower():
+                    include_instance = False
+                    break
+            if include_instance:
+                filtered_instances[instance_id] = instance_data
+        instances = filtered_instances
+    
+    # Apply sorting if requested
+    if sort_by and table_columns:
+        # Validate sort_by is in configured columns
+        valid_properties = [col['property'] for col in table_columns]
+        if sort_by in valid_properties:
+            instances = dict(sorted(instances.items(), 
+                key=lambda item: persistance.get_sortable_value(item[1], sort_by),
+                reverse=(sort_order == 'desc')))
+    
+    # Get enhanced filter options with property analysis
+    filter_options = persistance.get_enhanced_filter_options(table_columns)
+
+    if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
+        return Response(json.dumps(instances), mimetype='application/json')
+    
+    # Add sort info to template context
+    sort_info = {
+        'sort_by': sort_by,
+        'sort_order': sort_order
+    }
+    
+    is_project_mode = config.get("projects", {}).get("enabled", False)
+    
+    if config["template"]["storage"]=="cedar":
+        return render_template("index.html", 
+                             instances=instances, 
+                             template_id=config["template"]["templateId"], 
+                             search_query=search_query,
+                             table_columns=table_columns,
+                             filters=filters,
+                             filter_options=filter_options,
+                             sort_info=sort_info,
+                             is_project_mode=is_project_mode)
+    else:
+        return render_template("index.html", 
+                             instances=instances, 
+                             search_query=search_query,
+                             table_columns=table_columns,
+                             filters=filters,
+                             filter_options=filter_options,
+                             sort_info=sort_info,
+                             is_project_mode=is_project_mode)
+
+def get_template_by_config(template_config):
+    """
+    Get template based on configuration object.
+    Similar to get_template() but accepts a config dict.
+    """
+    if not template_config:
+        return get_template()  # Fall back to default
+    
+    if template_config.get('source') == 'cedar':
+        response = None
+        if "api_key" in template_config:
+            headers = {
+                "Authorization": f"apiKey {template_config['api_key']}",
+                "Content-Type": "application/json"
+            }
+            response = requests.get(
+                f"https://repo.metadatacenter.org/templates/{template_config['templateId']}", 
+                headers=headers
+            )
+        else:
+            response = requests.get(
+                f"https://open.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2F{template_config['templateId']}"
+            )
+        
+        return json.loads(response.text)
+    
+    if template_config.get('source') == 'file':
+        template = {}
+        template_path = template_config['location']
+        
+        if not os.path.exists(template_path):
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            template_path = os.path.join(script_dir, template_config['location'])
+        
+        if os.path.exists(template_path):
+            with open(template_path, 'r') as f:
+                template = json.load(f)
+        
+        return template
+    
+    return get_template()  # Fall back to default
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

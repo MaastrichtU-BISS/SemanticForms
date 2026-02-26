@@ -1,4 +1,4 @@
-import os, json, uuid
+import os, json, uuid, datetime
 
 class Persistance:
     def __init__(self):
@@ -719,3 +719,221 @@ class FilePersistance(Persistance):
         with open(filename, 'w') as f:
             json.dump(data, f, indent=4)
         self.__parse_jsonld_file(filename)
+    
+    # ============================================
+    # Project Management Methods
+    # ============================================
+    
+    def create_project(self, project_name: str, project_metadata: dict = None):
+        """
+        Create a new project folder with metadata.
+        
+        input:
+            - project_name: name of the project
+            - project_metadata: optional metadata for the project (JSON-LD)
+        output:
+            - project_id: unique identifier for the project
+        """
+        project_id = str(uuid.uuid4())
+        project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
+        os.makedirs(project_folder, exist_ok=True)
+        
+        # Create project metadata file
+        if project_metadata is None:
+            project_metadata = {}
+        
+        project_metadata["@id"] = f"{self.__base_url}/project/{project_id}"
+        project_metadata["@type"] = "Project"
+        project_metadata["project_name"] = project_name
+        project_metadata["pav:createdOn"] = datetime.datetime.now().isoformat()
+        
+        metadata_file = os.path.join(project_folder, "project_metadata.jsonld")
+        with open(metadata_file, 'w') as f:
+            json.dump(project_metadata, f, indent=4)
+        
+        return project_id
+    
+    def get_all_projects(self):
+        """
+        Get all projects from the storage folder.
+        
+        output:
+            - dictionary of projects with their metadata
+        """
+        projects = {}
+        
+        if not os.path.exists(self.__folder_location):
+            return projects
+        
+        for item in os.listdir(self.__folder_location):
+            item_path = os.path.join(self.__folder_location, item)
+            if os.path.isdir(item_path) and item.startswith("project_"):
+                project_id = item.replace("project_", "")
+                metadata_file = os.path.join(item_path, "project_metadata.jsonld")
+                
+                if os.path.exists(metadata_file):
+                    try:
+                        with open(metadata_file, 'r') as f:
+                            metadata = json.load(f)
+                            project_name = metadata.get("project_name", "Unnamed Project")
+                            created_on = metadata.get("pav:createdOn", "")
+                            
+                            projects[project_id] = {
+                                "id": project_id,
+                                "name": project_name,
+                                "created_on": created_on,
+                                "metadata": metadata,
+                                "folder": item_path
+                            }
+                    except Exception as e:
+                        print(f"Error loading project {project_id}: {e}")
+        
+        return projects
+    
+    def get_project(self, project_id: str):
+        """
+        Get a specific project by ID.
+        
+        input:
+            - project_id: the project identifier
+        output:
+            - project data dictionary
+        """
+        projects = self.get_all_projects()
+        if project_id in projects:
+            return projects[project_id]
+        else:
+            raise Exception(f"Project {project_id} not found")
+    
+    def project_exists(self, project_id: str) -> bool:
+        """
+        Check if a project exists.
+        
+        input:
+            - project_id: the project identifier
+        output:
+            - True if exists, False otherwise
+        """
+        project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
+        return os.path.exists(project_folder)
+    
+    def save_project_phase_response(self, project_id: str, phase_name: str, response_data: dict):
+        """
+        Save a questionnaire response for a specific project phase.
+        
+        input:
+            - project_id: the project identifier
+            - phase_name: the name of the phase
+            - response_data: the JSON-LD response data
+        output:
+            - response_id: unique identifier for the response
+        """
+        if not self.project_exists(project_id):
+            raise Exception(f"Project {project_id} not found")
+        
+        project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
+        
+        # Generate or extract response ID
+        if "@id" in response_data:
+            response_id = response_data["@id"].split("/")[-1]
+        else:
+            response_id = str(uuid.uuid4())
+            response_data["@id"] = f"{self.__base_url}/project/{project_id}/phase/{response_id}"
+        
+        # Add phase metadata
+        response_data["project_phase"] = phase_name
+        response_data["project_id"] = f"{self.__base_url}/project/{project_id}"
+        
+        if "pav:createdOn" not in response_data:
+            response_data["pav:createdOn"] = datetime.datetime.now().isoformat()
+        else:
+            response_data["pav:lastUpdatedOn"] = datetime.datetime.now().isoformat()
+        
+        # Save to file
+        # Sanitize phase name for filename
+        safe_phase_name = phase_name.replace(" ", "_").replace(":", "").replace("/", "_")
+        filename = os.path.join(project_folder, f"phase_{safe_phase_name}_{response_id}.jsonld")
+        
+        with open(filename, 'w') as f:
+            json.dump(response_data, f, indent=4)
+        
+        return response_id
+    
+    def get_project_phase_responses(self, project_id: str):
+        """
+        Get all questionnaire responses for a project, organized by phase.
+        
+        input:
+            - project_id: the project identifier
+        output:
+            - dictionary of responses organized by phase name
+        """
+        if not self.project_exists(project_id):
+            raise Exception(f"Project {project_id} not found")
+        
+        project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
+        responses_by_phase = {}
+        
+        for filename in os.listdir(project_folder):
+            if filename.startswith("phase_") and filename.endswith(".jsonld"):
+                filepath = os.path.join(project_folder, filename)
+                try:
+                    with open(filepath, 'r') as f:
+                        response_data = json.load(f)
+                        phase_name = response_data.get("project_phase", "Unknown Phase")
+                        response_id = response_data.get("@id", "").split("/")[-1]
+                        
+                        if phase_name not in responses_by_phase:
+                            responses_by_phase[phase_name] = []
+                        
+                        responses_by_phase[phase_name].append({
+                            "id": response_id,
+                            "filename": filepath,
+                            "data": response_data,
+                            "created_on": response_data.get("pav:createdOn", ""),
+                            "updated_on": response_data.get("pav:lastUpdatedOn", "")
+                        })
+                except Exception as e:
+                    print(f"Error loading response from {filename}: {e}")
+        
+        return responses_by_phase
+    
+    def delete_project(self, project_id: str):
+        """
+        Delete a project and all its associated data.
+        
+        input:
+            - project_id: the project identifier
+        """
+        if not self.project_exists(project_id):
+            raise Exception(f"Project {project_id} not found")
+        
+        import shutil
+        project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
+        shutil.rmtree(project_folder)
+    
+    def update_project_metadata(self, project_id: str, updated_metadata: dict):
+        """
+        Update project metadata.
+        
+        input:
+            - project_id: the project identifier
+            - updated_metadata: updated project metadata
+        """
+        if not self.project_exists(project_id):
+            raise Exception(f"Project {project_id} not found")
+        
+        project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
+        metadata_file = os.path.join(project_folder, "project_metadata.jsonld")
+        
+        # Preserve critical fields
+        if os.path.exists(metadata_file):
+            with open(metadata_file, 'r') as f:
+                existing = json.load(f)
+                updated_metadata["@id"] = existing.get("@id")
+                updated_metadata["pav:createdOn"] = existing.get("pav:createdOn")
+        
+        updated_metadata["pav:lastUpdatedOn"] = datetime.datetime.now().isoformat()
+        
+        with open(metadata_file, 'w') as f:
+            json.dump(updated_metadata, f, indent=4)

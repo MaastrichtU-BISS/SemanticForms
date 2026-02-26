@@ -8,7 +8,7 @@ template:
   instance_base_url: http://localhost
   title_predicate: title
 bioportal:
-  api_key: my_api_key
+  api_key: 8b5b7825-538d-40e0-9e9e-5ab9274a9aeb
 tableColumns:
   - property: "General Model Information.Title"
     label: "Title"
@@ -19,3 +19,32 @@ tableColumns:
     label: "Date created"
   - property: "General Model Information.Developed at CDS (Maastro)"
     label: "Organisation"
+# Optional: Project functionality configuration
+# Uncomment and configure to enable multi-phase project workflow
+# projects:
+#   enabled: true
+#   # Optional: CEDAR template for project metadata
+#   project_metadata_template:
+#     source: cedar
+#     api_key: your_api_key_here
+#     templateId: your_project_template_id_here
+#   # Define project phases and their associated templates/questionnaires
+#   phases:
+#     - name: "Phase 1: Initial Assessment"
+#       template:
+#         source: cedar
+#         api_key: your_api_key_here
+#         templateId: template_id_for_phase1
+#         title_predicate: title
+#     - name: "Phase 2: Development"
+#       template:
+#         source: cedar
+#         api_key: your_api_key_here
+#         templateId: template_id_for_phase2
+#         title_predicate: title
+#     - name: "Phase 3: Evaluation"
+#       template:
+#         source: cedar
+#         api_key: your_api_key_here
+#         templateId: template_id_for_phase3
+#         title_predicate: title

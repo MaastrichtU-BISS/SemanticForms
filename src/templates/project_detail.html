@@ -1,0 +1,167 @@
+{% extends "layout.html" %}
+
+{% block sidebar %}
+<!-- Project Details Sidebar -->
+<div class="sidebar-header">
+    <h5 class="mb-0">📋 Project Info</h5>
+</div>
+<div class="sidebar-content">
+    <div class="mb-3">
+        <h6 class="font-weight-bold">{{ project.name }}</h6>
+        <small class="text-muted">Created: {{ project.created_on[:10] if project.created_on else 'N/A' }}</small>
+    </div>
+    
+    {% if project.metadata.get('description') %}
+    <div class="mb-3">
+        <p><small>{{ project.metadata.description }}</small></p>
+    </div>
+    {% endif %}
+    
+    <hr>
+    
+    <div class="mb-3">
+        <a href="/projects" class="btn btn-sm btn-outline-secondary btn-block">
+            ← Back to Projects
+        </a>
+    </div>
+    
+    <div class="mt-3">
+        <h6 class="font-weight-bold">Progress</h6>
+        <ul class="list-unstyled">
+            <li><small>Total Phases: <strong>{{ phases|length }}</strong></small></li>
+            <li><small>Completed: <strong>{{ phase_responses|length }}</strong></small></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ project.name }}</h1>
+</div>
+
+{% if project.metadata.get('description') %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <strong>Description:</strong> {{ project.metadata.description }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h3>Project Phases</h3>
+        <p>Complete questionnaires for each phase of your project.</p>
+    </div>
+</div>
+
+{% if phases %}
+<div class="row">
+    {% for phase in phases %}
+    <div class="col-md-12 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    Phase {{ loop.index }}: {{ phase.name }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% set phase_name = phase.name %}
+                {% set responses = phase_responses.get(phase_name, []) %}
+                
+                {% if responses %}
+                <h6>Completed Questionnaires:</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Created</th>
+                                <th>Last Updated</th>
+                                {% if user %}
+                                <th>Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for response in responses %}
+                            <tr>
+                                <td><code>{{ response.id[:8] }}...</code></td>
+                                <td>
+                                    <small>
+                                        {% if response.created_on %}
+                                        {{ response.created_on[:10] }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <small>
+                                        {% if response.updated_on %}
+                                        {{ response.updated_on[:10] }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                {% if user %}
+                                <td>
+                                    <a href="/projects/{{ project.id }}/phase/{{ phase_name }}/response/{{ response.id }}/edit" 
+                                       class="btn btn-sm btn-outline-secondary">Edit</a>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-3">
+                    <em>No questionnaires completed for this phase yet.</em>
+                </p>
+                {% endif %}
+                
+                {% if user %}
+                <div class="mt-3">
+                    <a href="/projects/{{ project.id }}/phase/{{ loop.index0 }}/add" 
+                       class="btn btn-success">
+                        <svg width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                        </svg>
+                        Add Questionnaire
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-warning">
+            <h5>No Phases Configured</h5>
+            <p>Please configure phases in your <code>config.yaml</code> file to enable phase-based questionnaires.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Project Metadata Section -->
+<div class="row mt-5">
+    <div class="col-md-12">
+        <h3>Project Metadata</h3>
+        <div class="card">
+            <div class="card-body">
+                <pre class="mb-0"><code>{{ project.metadata | tojson(indent=2) }}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
