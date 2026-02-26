@@ -1,11 +1,21 @@
 server:
   storageFolder: ./data
-  server_url: "http://rdf-store:7200"
-  repository_name: "semantic_forms"
-  update_endpoint_suffix: "/statements"
 template:
   source: cedar
-  templateId: 8f15be13-9e24-487a-8844-f5b70bcc7cf0?folderId=https:%2F%2Frepo.metadatacenter.org%2Ffolders%2F6ce6f9ff-a9ff-49a0-987a-88d3c9b639ff
-  storage: cedar
-  instance_base_url: https://describe.fairmodels.org/instance
-  title_predicate: http://purl.org/dc/terms/title
+  api_key: 6016177645f66555aa2e90fdfa523036127f586c731b8275158759921c21b304
+  templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
+  storage: local
+  instance_base_url: http://localhost
+  title_predicate: title
+bioportal:
+  api_key: my_api_key
+tableColumns:
+  - property: "General Model Information.Title"
+    label: "Title"
+    linkable: true
+  - property: "General Model Information.Created by"
+    label: "Author"
+  - property: "General Model Information.Creation date"
+    label: "Date created"
+  - property: "General Model Information.Developed at CDS (Maastro)"
+    label: "Organisation"
