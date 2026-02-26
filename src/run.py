@@ -284,15 +284,17 @@ def get_template():
     ```
     template:
         source: cedar
-        api_key: <your_api_key>
         templateId: <your_template_uuid>
     ```
+    API key can be specified in template config or at top level as 'api_key'
     """
     if config['template']['source'] == 'cedar':
         response=None
-        if "api_key" in config['template']:
+        # Check for api_key in template config, then fall back to top-level api_key
+        api_key = config['template'].get('api_key') or config.get('api_key')
+        if api_key:
             headers = {
-                "Authorization": f"apiKey {config['template']['api_key']}",
+                "Authorization": f"apiKey {api_key}",
                 "Content-Type": "application/json"
             }
             response = requests.get(f"https://repo.metadatacenter.org/templates/{config['template']['templateId']}", headers=headers)
@@ -692,15 +694,18 @@ def get_template_by_config(template_config):
     """
     Get template based on configuration object.
     Similar to get_template() but accepts a config dict.
+    API key priority: template_config > top-level config
     """
     if not template_config:
         return get_template()  # Fall back to default
     
     if template_config.get('source') == 'cedar':
         response = None
-        if "api_key" in template_config:
+        # Check for api_key in template_config, then fall back to top-level api_key
+        api_key = template_config.get('api_key') or config.get('api_key')
+        if api_key:
             headers = {
-                "Authorization": f"apiKey {template_config['api_key']}",
+                "Authorization": f"apiKey {api_key}",
                 "Content-Type": "application/json"
             }
             response = requests.get(

@@ -1,8 +1,9 @@
 server:
   storageFolder: ./data
+# Default API key used for CEDAR templates (can be overridden per template)
+api_key: api_key
 template:
   source: cedar
-  api_key: 6016177645f66555aa2e90fdfa523036127f586c731b8275158759921c21b304
   templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
   storage: local
   instance_base_url: http://localhost
@@ -21,30 +22,26 @@ tableColumns:
     label: "Organisation"
 # Optional: Project functionality configuration
 # Uncomment and configure to enable multi-phase project workflow
-# projects:
-#   enabled: true
-#   # Optional: CEDAR template for project metadata
-#   project_metadata_template:
-#     source: cedar
-#     api_key: your_api_key_here
-#     templateId: your_project_template_id_here
-#   # Define project phases and their associated templates/questionnaires
-#   phases:
-#     - name: "Phase 1: Initial Assessment"
-#       template:
-#         source: cedar
-#         api_key: your_api_key_here
-#         templateId: template_id_for_phase1
-#         title_predicate: title
-#     - name: "Phase 2: Development"
-#       template:
-#         source: cedar
-#         api_key: your_api_key_here
-#         templateId: template_id_for_phase2
-#         title_predicate: title
-#     - name: "Phase 3: Evaluation"
-#       template:
-#         source: cedar
-#         api_key: your_api_key_here
-#         templateId: template_id_for_phase3
-#         title_predicate: title
+projects:
+  enabled: true
+  # Optional: CEDAR template for project metadata
+  project_metadata_template:
+    source: cedar
+    templateId: your_project_template_id_here
+  # Define project phases and their associated templates/questionnaires
+  phases:
+    - name: "Phase 1: Initial Assessment"
+      template:
+        source: cedar
+        templateId: template_id_for_phase1
+        title_predicate: title
+    - name: "Phase 2: Development"
+      template:
+        source: cedar
+        templateId: template_id_for_phase2
+        title_predicate: title
+    - name: "Phase 3: Evaluation"
+      template:
+        source: cedar
+        templateId: template_id_for_phase3
+        title_predicate: title
