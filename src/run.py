@@ -178,9 +178,9 @@ def logout():
 
 @app.route("/add")
 def cee():
-    # # Test authentication or send HTTP 401 error
-    # if not session.get("user"):
-    #     return redirect("/login")
+    # Test authentication or send HTTP 401 error
+    if not session.get("user"):
+        return redirect("/login")
     
     bioportal_key = config.get("bioportal", {}).get("api_key", "")
     return render_template("form.html", 
@@ -189,9 +189,9 @@ def cee():
 
 @app.route("/instance/<identifier>/edit")
 def edit_cee(identifier: str):
-    # # Test authentication or to login page
-    # if not session.get("user"):
-    #     return redirect("/login")
+    # Test authentication or to login page
+    if not session.get("user"):
+        return redirect("/login")
     
     if identifier:
         print(f"Loading instance from file: {identifier}")
@@ -233,9 +233,9 @@ def delete_instance(identifier: str):
 
 @app.route("/instance/<identifier>")
 def showInstance(identifier: str):
-    # # Test authentication or to login page
-    # if not session.get("user"):
-    #     return redirect("/login")
+    # Test authentication or to login page
+    if not session.get("user"):
+        return redirect("/login")
     
     filename = persistance.get_instance(identifier)['filename']
     with open(filename, "r") as f:
@@ -393,9 +393,9 @@ def create_project():
     """
     Create a new project with metadata.
     """
-    # # Test authentication
-    # if not session.get("user"):
-    #     return redirect("/login")
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -440,9 +440,9 @@ def store_project_metadata():
     """
     API endpoint to store project metadata from template form.
     """
-    # # Test authentication
-    # if not session.get("user"):
-    #     return {"error": "Unauthorized"}, 401
+    # Test authentication
+    if not session.get("user"):
+        return {"error": "Unauthorized"}, 401
     
     if not config.get("projects", {}).get("enabled", False):
         return {"error": "Projects not enabled"}, 400
@@ -583,9 +583,9 @@ def add_phase_response(project_id: str, phase_index: int):
     """
     Add a questionnaire response for a specific project phase.
     """
-    # # Test authentication
-    # if not session.get("user"):
-    #     return redirect("/login")
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -612,9 +612,9 @@ def edit_phase_response(project_id: str, phase_name: str, response_id: str):
     """
     Edit an existing phase response.
     """
-    # # Test authentication
-    # if not session.get("user"):
-    #     return redirect("/login")
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -726,9 +726,9 @@ def delete_project(project_id: str):
     """
     Delete a project and all its data.
     """
-    # # Test authentication
-    # if not session.get("user"):
-    #     return redirect("/login")
+    # Test authentication
+    if not session.get("user"):
+        return redirect("/login")
     
     persistance.delete_project(project_id)
     return redirect("/projects")
