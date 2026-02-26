@@ -898,6 +898,38 @@ class FilePersistance(Persistance):
         
         return responses_by_phase
     
+    def get_project_phase_response(self, project_id: str, response_id: str):
+        """
+        Get a single questionnaire response for a project phase.
+        
+        input:
+            - project_id: the project identifier
+            - response_id: the response identifier
+        output:
+            - dictionary with response data and metadata
+        """
+        if not self.project_exists(project_id):
+            raise Exception(f"Project {project_id} not found")
+        
+        project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
+        
+        # Search for the response file
+        for filename in os.listdir(project_folder):
+            if filename.startswith("phase_") and filename.endswith(f"{response_id}.jsonld"):
+                filepath = os.path.join(project_folder, filename)
+                with open(filepath, 'r') as f:
+                    response_data = json.load(f)
+                    return {
+                        "id": response_id,
+                        "filename": filepath,
+                        "data": response_data,
+                        "phase_name": response_data.get("project_phase", "Unknown Phase"),
+                        "created_on": response_data.get("pav:createdOn", ""),
+                        "updated_on": response_data.get("pav:lastUpdatedOn", "")
+                    }
+        
+        raise Exception(f"Response {response_id} not found in project {project_id}")
+    
     def delete_project(self, project_id: str):
         """
         Delete a project and all its associated data.

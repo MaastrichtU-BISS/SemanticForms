@@ -64,7 +64,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
-                    Phase {{ loop.index }}: {{ phase.name }}
+                    {{ phase.name }}
                 </h5>
             </div>
             <div class="card-body">
@@ -80,9 +80,7 @@
                                 <th>ID</th>
                                 <th>Created</th>
                                 <th>Last Updated</th>
-                                {% if user %}
                                 <th>Actions</th>
-                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -107,12 +105,14 @@
                                         {% endif %}
                                     </small>
                                 </td>
-                                {% if user %}
                                 <td>
+                                    <a href="/projects/{{ project.id }}/phase/{{ phase_name }}/response/{{ response.id }}" 
+                                       class="btn btn-sm btn-outline-primary">View</a>
+                                    {% if user %}
                                     <a href="/projects/{{ project.id }}/phase/{{ phase_name }}/response/{{ response.id }}/edit" 
                                        class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    {% endif %}
                                 </td>
-                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

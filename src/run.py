@@ -477,6 +477,58 @@ def store_project_metadata():
     project_id = persistance.create_project(project_name, metadata)
     return {"message": "ok", "project_id": project_id}
 
+@app.route("/projects/<project_id>/phase/<phase_name>/response/<response_id>")
+def view_phase_response(project_id: str, phase_name: str, response_id: str):
+    """
+    Display a single phase response (read-only view).
+    """
+    try:
+        response = persistance.get_project_phase_response(project_id, response_id)
+        response_data = response["data"]
+        
+        # Get the phase configuration to retrieve the template
+        phases = config.get("projects", {}).get("phases", [])
+        phase_template = None
+        for phase in phases:
+            if phase.get("name") == phase_name:
+                phase_template = get_template_by_config(phase.get("template", {}))
+                break
+        
+        # If no template found, use default template
+        if not phase_template:
+            phase_template = get_template()
+        
+        # Handle different response formats
+        if "application/n-triples" in request.accept_mimetypes.best:
+            g = Graph()
+            g.parse(data=json.dumps(response_data), format='json-ld')
+            ntriples = g.serialize(format='nt')
+            return Response(ntriples, mimetype='application/n-triples')
+        
+        if "application/json" in request.accept_mimetypes.best:
+            return Response(json.dumps(response_data), mimetype='application/json')
+        
+        if "application/ld+json" in request.accept_mimetypes.best:
+            return Response(json.dumps(response_data), mimetype='application/ld+json')
+        
+        if "application/rdf+xml" in request.accept_mimetypes.best:
+            g = Graph()
+            g.parse(data=json.dumps(response_data), format='json-ld')
+            rdfxml = g.serialize(format='xml')
+            return Response(rdfxml, mimetype='application/rdf+xml')
+        
+        # Render HTML view
+        project = persistance.get_project(project_id)
+        return render_template("phase_response.html",
+                             jsonData=response_data,
+                             templateObject=phase_template,
+                             response_id=response_id,
+                             project=project,
+                             phase_name=phase_name)
+    except Exception as e:
+        app.logger.error(f"Error viewing phase response: {str(e)}")
+        return f"Error: {str(e)}", 404
+
 @app.route("/projects/<project_id>")
 def project_detail(project_id: str):
     """
@@ -598,13 +650,10 @@ def edit_phase_response(project_id: str, phase_name: str, response_id: str):
                          is_project_mode=True)
 
 @app.route("/api/projects/<project_id>/phase/<phase_name>/store", methods=["POST", "PUT"])
-def store_project_phase():
+def store_project_phase(project_id, phase_name):
     """
     Store a questionnaire response for a project phase.
     """
-    project_id = request.view_args.get("project_id")
-    phase_name = request.view_args.get("phase_name")
-    
     data_to_store = request.get_json()
     data_to_store_meta = data_to_store["metadata"]
     
