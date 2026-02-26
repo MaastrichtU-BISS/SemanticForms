@@ -31,93 +31,6 @@
 
 <div class="row">
     <div class="col-md-8">
-        {% if project_template %}
-        <!-- Use CEDAR embeddable editor for project metadata -->
-        <link rel="stylesheet" href="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.css">
-        <script type="text/javascript" src="https://resource.metadatacenter.org/cedar-embeddable-editor/1.6.8/cedar-embeddable-editor.js"></script>
-        
-        <div class="card">
-            <div class="card-header">
-                <h5>Project Metadata Form</h5>
-            </div>
-            <div class="card-body">
-                <div id="cedar-embeddable-editor"></div>
-            </div>
-        </div>
-        
-        <script>
-            // Wait for CEDAR library to load
-            window.addEventListener('load', function() {
-                var cedarEmbeddableEditor = new CEDAREmbeddableEditor();
-                cedarEmbeddableEditor.init({
-                    'terminology.integrated.enabled': true,
-                    'terminology.integrated.bioportal.apikey': '{{ bioportal_api_key }}',
-                    'terminology.integrated.bioportal.enabled': true
-                });
-
-                var appContext = {};
-                var editorConfig = {
-                    'environment': 'all',
-                    'termsOfUse': 'hide'
-                };
-
-                cedarEmbeddableEditor.buildEmbeddableEditor(
-                    document.getElementById('cedar-embeddable-editor'),
-                    appContext,
-                    editorConfig,
-                    {{ project_template | tojson }},
-                    null
-                );
-                
-                // Make editor globally accessible for submit function
-                window.cedarEmbeddableEditor = cedarEmbeddableEditor;
-            });
-            
-            function submitProject() {
-                if (!window.cedarEmbeddableEditor) {
-                    alert('Editor is still loading. Please wait a moment and try again.');
-                    return;
-                }
-                
-                var formData = window.cedarEmbeddableEditor.getFormJSON();
-                
-                // Extract project name from metadata
-                var projectName = "New Project";
-                if (formData["@context"] && formData["project_name"]) {
-                    projectName = formData["project_name"]["@value"] || projectName;
-                }
-                
-                // Submit to server
-                fetch('/api/projects/store', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        metadata: formData
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.project_id) {
-                        window.location.href = '/projects/' + data.project_id;
-                    } else {
-                        alert('Error creating project');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error creating project');
-                });
-            }
-        </script>
-        
-        <div class="mt-3">
-            <button onclick="submitProject()" class="btn btn-primary">Create Project</button>
-            <a href="/projects" class="btn btn-secondary">Cancel</a>
-        </div>
-        
-        {% else %}
         <!-- Simple form for project creation -->
         <div class="card">
             <div class="card-header">
@@ -146,7 +59,6 @@
                 </form>
             </div>
         </div>
-        {% endif %}
     </div>
     
     <div class="col-md-4">

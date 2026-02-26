@@ -416,57 +416,9 @@ def create_project():
         return redirect(f"/projects/{project_id}")
     
     # GET request - show form
-    # Check if there's a project metadata template configured
-    project_template = None
-    if "project_metadata_template" in config.get("projects", {}):
-        project_template = get_template_by_config(config["projects"]["project_metadata_template"])
-    
     bioportal_key = config.get("bioportal", {}).get("api_key", "")
     return render_template("project_create.html", 
-                         project_template=project_template,
                          bioportal_api_key=bioportal_key)
-
-@app.route("/api/projects/store", methods=["POST"])
-def store_project_metadata():
-    """
-    API endpoint to store project metadata from CEDAR embeddable editor.
-    """
-    # # Test authentication
-    # if not session.get("user"):
-    #     return {"error": "Unauthorized"}, 401
-    
-    if not config.get("projects", {}).get("enabled", False):
-        return {"error": "Projects not enabled"}, 400
-    
-    data = request.get_json()
-    metadata = data.get("metadata", {})
-    
-    # Extract project name from metadata
-    project_name = "Untitled Project"
-    
-    # Try various fields for project name
-    if "project_name" in metadata:
-        if isinstance(metadata["project_name"], dict) and "@value" in metadata["project_name"]:
-            project_name = metadata["project_name"]["@value"]
-        else:
-            project_name = str(metadata["project_name"])
-    elif "name" in metadata:
-        if isinstance(metadata["name"], dict) and "@value" in metadata["name"]:
-            project_name = metadata["name"]["@value"]
-        else:
-            project_name = str(metadata["name"])
-    elif "title" in metadata:
-        if isinstance(metadata["title"], dict) and "@value" in metadata["title"]:
-            project_name = metadata["title"]["@value"]
-        else:
-            project_name = str(metadata["title"])
-    
-    # Add user info if available
-    if session.get("user"):
-        metadata["created_by"] = session.get("user", {}).get("name", "Unknown")
-    
-    project_id = persistance.create_project(project_name, metadata)
-    return {"message": "ok", "project_id": project_id}
 
 @app.route("/projects/<project_id>")
 def project_detail(project_id: str):
