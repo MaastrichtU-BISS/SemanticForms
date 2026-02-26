@@ -70,7 +70,6 @@ def render_template(
     """
     Override render_template to add user to the context
     """
-    print(json.dumps(session.get("user"), indent=4))
     return flask.render_template(template_name_or_list, user=session.get("user"), **context)
 
 @app.route("/")
@@ -346,7 +345,6 @@ def store():
     if request.method == "POST":
         session_id = uuid.uuid4()
         print("new profile")
-        print(f"Session id: {session_id}")
 
         fileNameJson = os.path.join(config['server']['storageFolder'], f"{session_id}.jsonld")
         target["schema:isBasedOn"] = template['@id']
