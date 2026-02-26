@@ -58,9 +58,9 @@
                     </small>
                 </p>
                 
-                {% if project.metadata.get('description') %}
+                {% if project.description %}
                 <p class="card-text">
-                    <small>{{ project.metadata.description[:100] }}{% if project.metadata.description|length > 100 %}...{% endif %}</small>
+                    <small>{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</small>
                 </p>
                 {% endif %}
             </div>

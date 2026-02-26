@@ -11,9 +11,9 @@
         <small class="text-muted">Created: {{ project.created_on[:10] if project.created_on else 'N/A' }}</small>
     </div>
     
-    {% if project.metadata.get('description') %}
+    {% if project.description %}
     <div class="mb-3">
-        <p><small>{{ project.metadata.description }}</small></p>
+        <p><small>{{ project.description }}</small></p>
     </div>
     {% endif %}
     
@@ -40,11 +40,11 @@
     <h1>{{ project.name }}</h1>
 </div>
 
-{% if project.metadata.get('description') %}
+{% if project.description %}
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="alert alert-info">
-            <strong>Description:</strong> {{ project.metadata.description }}
+            <strong>Description:</strong> {{ project.description }}
         </div>
     </div>
 </div>

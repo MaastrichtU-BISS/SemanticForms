@@ -724,12 +724,12 @@ class FilePersistance(Persistance):
     # Project Management Methods
     # ============================================
     
-    def create_project(self, project_name: str, project_metadata: dict = None):
+    def create_project(self, project_name: str = None, project_metadata: dict = None):
         """
         Create a new project folder with metadata.
         
         input:
-            - project_name: name of the project
+            - project_name: name of the project (optional, for simple form creation)
             - project_metadata: optional metadata for the project (JSON-LD)
         output:
             - project_id: unique identifier for the project
@@ -744,7 +744,12 @@ class FilePersistance(Persistance):
         
         project_metadata["@id"] = f"{self.__base_url}/project/{project_id}"
         project_metadata["@type"] = "Project"
-        project_metadata["project_name"] = project_name
+        
+        # Only add project_name field if explicitly provided (for simple form creation)
+        # For template-based creation, the name is within the CEDAR template data
+        if project_name is not None:
+            project_metadata["project_name"] = project_name
+        
         project_metadata["pav:createdOn"] = datetime.datetime.now().isoformat()
         
         metadata_file = os.path.join(project_folder, "project_metadata.jsonld")
@@ -753,10 +758,72 @@ class FilePersistance(Persistance):
         
         return project_id
     
-    def get_all_projects(self):
+    def _extract_project_name_from_metadata(self, metadata: dict, name_predicate: str = None) -> str:
+        """
+        Extract project name from metadata using configured predicate or fallback.
+        
+        input:
+            - metadata: project metadata dictionary
+            - name_predicate: optional predicate/field path from config (e.g., 'project_name' or 'General.Name')
+        output:
+            - project name string
+        """
+        # If a name_predicate is configured, use it
+        if name_predicate:
+            # Try nested property extraction (supports dot notation)
+            value = self.__extract_nested_property_value(metadata, name_predicate)
+            if value:
+                return value
+        
+        # Fallback: First check if there's a hard-coded project_name (for simple form projects)
+        if "project_name" in metadata and not isinstance(metadata["project_name"], dict):
+            return metadata["project_name"]
+        
+        # Try to extract from common CEDAR template fields
+        for field_name in ["project_name", "name", "title"]:
+            if field_name in metadata:
+                field_value = metadata[field_name]
+                if isinstance(field_value, dict) and "@value" in field_value:
+                    return field_value["@value"]
+                elif isinstance(field_value, str):
+                    return field_value
+        
+        return "Unnamed Project"
+    
+    def _extract_cedar_field_value(self, metadata: dict, field_predicate: str) -> str:
+        """
+        Extract a field value from CEDAR template metadata using configured predicate.
+        
+        input:
+            - metadata: project metadata dictionary
+            - field_predicate: predicate/field path from config (e.g., 'description' or 'General.Description')
+        output:
+            - field value as string, or empty string if not found
+        """
+        if not field_predicate:
+            return ""
+        
+        # Try nested property extraction (supports dot notation)
+        value = self.__extract_nested_property_value(metadata, field_predicate)
+        if value:
+            return value
+        
+        # Fallback: direct field lookup
+        if field_predicate in metadata:
+            field_value = metadata[field_predicate]
+            if isinstance(field_value, dict) and "@value" in field_value:
+                return field_value["@value"]
+            elif isinstance(field_value, str):
+                return field_value
+        
+        return ""
+    
+    def get_all_projects(self, config: dict = None):
         """
         Get all projects from the storage folder.
         
+        input:
+            - config: optional configuration dictionary for field extraction
         output:
             - dictionary of projects with their metadata
         """
@@ -764,6 +831,14 @@ class FilePersistance(Persistance):
         
         if not os.path.exists(self.__folder_location):
             return projects
+        
+        # Extract predicates from config if provided
+        name_predicate = None
+        description_predicate = None
+        if config and "projects" in config and "project_metadata_template" in config["projects"]:
+            template_config = config["projects"]["project_metadata_template"]
+            name_predicate = template_config.get("name_predicate") or template_config.get("title_predicate")
+            description_predicate = template_config.get("description_predicate")
         
         for item in os.listdir(self.__folder_location):
             item_path = os.path.join(self.__folder_location, item)
@@ -775,12 +850,18 @@ class FilePersistance(Persistance):
                     try:
                         with open(metadata_file, 'r') as f:
                             metadata = json.load(f)
-                            project_name = metadata.get("project_name", "Unnamed Project")
+                            project_name = self._extract_project_name_from_metadata(metadata, name_predicate)
                             created_on = metadata.get("pav:createdOn", "")
+                            
+                            # Extract description using configured predicate
+                            description = ""
+                            if description_predicate:
+                                description = self._extract_cedar_field_value(metadata, description_predicate)
                             
                             projects[project_id] = {
                                 "id": project_id,
                                 "name": project_name,
+                                "description": description,
                                 "created_on": created_on,
                                 "metadata": metadata,
                                 "folder": item_path
@@ -790,16 +871,17 @@ class FilePersistance(Persistance):
         
         return projects
     
-    def get_project(self, project_id: str):
+    def get_project(self, project_id: str, config: dict = None):
         """
         Get a specific project by ID.
         
         input:
             - project_id: the project identifier
+            - config: optional configuration dictionary for field extraction
         output:
             - project data dictionary
         """
-        projects = self.get_all_projects()
+        projects = self.get_all_projects(config)
         if project_id in projects:
             return projects[project_id]
         else:

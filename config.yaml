@@ -28,13 +28,17 @@ projects:
   project_metadata_template:
     source: cedar
     templateId: 100bf5b8-a42e-4fe7-aaf3-c3305626cc54
+    # Specify which field to use as the project name (supports dot notation for nested fields)
+    name_predicate: Title  # or use 'title' or nested like 'General.Name'
+    # # Optional: specify which field to use as the project description
+    # description_predicate: description  # or use nested like 'General.Description'
   # Define project phases and their associated templates/questionnaires
   phases:
     - name: "Phase 1: Pre-registration"
       template:
         source: cedar
         templateId: 2781be7e-b18f-45d0-9c89-014c01f2ddf7
-        title_predicate: title
+        title_predicate: Title
     - name: "Phase 2: Training data description"
       template:
         source: cedar

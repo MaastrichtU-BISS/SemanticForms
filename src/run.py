@@ -379,7 +379,7 @@ def projects_list():
         # If projects not enabled, redirect to standard index
         return redirect("/instances")
     
-    projects = persistance.get_all_projects()
+    projects = persistance.get_all_projects(config)
     
     # Sort projects by creation date (newest first)
     projects_sorted = dict(sorted(projects.items(), 
@@ -450,31 +450,13 @@ def store_project_metadata():
     data = request.get_json()
     metadata = data.get("metadata", {})
     
-    # Extract project name from metadata
-    project_name = "Untitled Project"
-    
-    # Try various fields for project name
-    if "project_name" in metadata:
-        if isinstance(metadata["project_name"], dict) and "@value" in metadata["project_name"]:
-            project_name = metadata["project_name"]["@value"]
-        else:
-            project_name = str(metadata["project_name"])
-    elif "name" in metadata:
-        if isinstance(metadata["name"], dict) and "@value" in metadata["name"]:
-            project_name = metadata["name"]["@value"]
-        else:
-            project_name = str(metadata["name"])
-    elif "title" in metadata:
-        if isinstance(metadata["title"], dict) and "@value" in metadata["title"]:
-            project_name = metadata["title"]["@value"]
-        else:
-            project_name = str(metadata["title"])
-    
     # Add user info if available
     if session.get("user"):
         metadata["created_by"] = session.get("user", {}).get("name", "Unknown")
     
-    project_id = persistance.create_project(project_name, metadata)
+    # Don't extract or pass project_name separately - it's stored within the CEDAR template data
+    # The name will be extracted dynamically from fields like "project_name", "name", or "title"
+    project_id = persistance.create_project(None, metadata)
     return {"message": "ok", "project_id": project_id}
 
 @app.route("/projects/<project_id>/phase/<phase_name>/response/<response_id>")
@@ -518,7 +500,7 @@ def view_phase_response(project_id: str, phase_name: str, response_id: str):
             return Response(rdfxml, mimetype='application/rdf+xml')
         
         # Render HTML view
-        project = persistance.get_project(project_id)
+        project = persistance.get_project(project_id, config)
         return render_template("phase_response.html",
                              jsonData=response_data,
                              templateObject=phase_template,
@@ -538,7 +520,7 @@ def project_detail(project_id: str):
         return redirect("/")
     
     try:
-        project = persistance.get_project(project_id)
+        project = persistance.get_project(project_id, config)
         phases = config.get("projects", {}).get("phases", [])
         phase_responses = persistance.get_project_phase_responses(project_id)
         
