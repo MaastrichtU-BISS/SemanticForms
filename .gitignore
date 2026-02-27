@@ -11,6 +11,7 @@ MaterialIcons*
 **/cee/styles.css
 .DS_Store
 config.yaml
+src/config.yaml
 JSON-generation.ipynb
 .ipynb_checkpoints/
 
