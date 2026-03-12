@@ -135,6 +135,66 @@
         }
 
         /**
+         * Build the actual @context object from a template schema's properties["@context"].properties.
+         * Extracts simple URI mappings and @type annotations from the JSON Schema definition.
+         */
+        buildContextFromSchema(schema) {
+            const context = {};
+            const ctxProperties = schema?.properties?.['@context']?.properties || {};
+            for (const [key, value] of Object.entries(ctxProperties)) {
+                if (value.enum && value.enum.length > 0) {
+                    // Simple URI mapping: "key": "URI"
+                    context[key] = value.enum[0];
+                } else if (value.type === 'object' && value.properties?.['@type']?.enum) {
+                    // Type annotation: "key": { "@type": "..." }
+                    context[key] = { '@type': value.properties['@type'].enum[0] };
+                }
+            }
+            return context;
+        }
+
+        /**
+         * Post-process collected formData to add @context to TemplateElement instances
+         * (both plain elements and array items containing elements).
+         */
+        addElementContexts(data, schema) {
+            const TEMPLATE_ELEMENT_TYPE = 'https://schema.metadatacenter.org/core/TemplateElement';
+            const properties = schema.properties || {};
+            for (const [key, fieldSchema] of Object.entries(properties)) {
+                if (key.startsWith('@') || key.startsWith('pav:') ||
+                    key.startsWith('schema:') || key.startsWith('oslc:')) {
+                    continue;
+                }
+                const fieldType = fieldSchema['@type'];
+                const isElement = fieldType === TEMPLATE_ELEMENT_TYPE;
+                const isArrayField = fieldSchema.type === 'array';
+
+                if (isElement && data[key] && typeof data[key] === 'object' && !Array.isArray(data[key])) {
+                    // Add @context to nested element if missing
+                    if (!data[key]['@context'] || Object.keys(data[key]['@context']).length === 0) {
+                        data[key]['@context'] = this.buildContextFromSchema(fieldSchema);
+                    }
+                    // Recurse into nested element
+                    this.addElementContexts(data[key], fieldSchema);
+                } else if (isArrayField && fieldSchema.items) {
+                    const itemSchema = fieldSchema.items;
+                    const itemType = itemSchema['@type'];
+                    const isItemElement = itemType === TEMPLATE_ELEMENT_TYPE;
+                    if (isItemElement && Array.isArray(data[key])) {
+                        data[key].forEach(item => {
+                            if (item && typeof item === 'object') {
+                                if (!item['@context'] || Object.keys(item['@context']).length === 0) {
+                                    item['@context'] = this.buildContextFromSchema(itemSchema);
+                                }
+                                this.addElementContexts(item, itemSchema);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        /**
          * Initialize the form data structure from instance or create empty structure
          */
         initializeFormData() {
@@ -144,7 +204,7 @@
             } else {
                 // Create empty structure based on template
                 this.formData = {
-                    "@context": this.template["@context"] || {}
+                    "@context": this.buildContextFromSchema(this.template)
                 };
             }
         }
@@ -344,7 +404,7 @@
             // Initialize nested structure if doesn't exist
             if (!this.formData[parentName]) {
                 this.formData[parentName] = {
-                    "@context": schema["@context"] || {}
+                    "@context": this.buildContextFromSchema(schema)
                 };
             }
 
@@ -1092,7 +1152,7 @@
         collectFormData() {
             const form = document.getElementById('dynamic-form');
             const formData = {
-                "@context": this.template["@context"] || {}
+                "@context": this.buildContextFromSchema(this.template)
             };
 
             // Get all inputs and handle multiple choice checkboxes separately
@@ -1150,9 +1210,7 @@
                         // Create ontology value structure in Cedar JSON-LD format
                         const ontologyValue = {
                             '@id': selectedId,
-                            'rdfs:label': {
-                                '@value': selectedLabel
-                            }
+                            'rdfs:label': selectedLabel
                         };
                         console.log(`Creating ontology value for ${path}:`, ontologyValue);
                         this.setNestedValue(formData, path, ontologyValue, true, input);
@@ -1187,6 +1245,9 @@
                 const cedarValues = values.length > 0 ? values.map(v => ({ "@value": v })) : [];
                 this.setNestedValue(formData, name, cedarValues, false, null);
             });
+
+            // Add @context to all TemplateElement instances in the collected data
+            this.addElementContexts(formData, this.template);
 
             return formData;
         }
@@ -1306,9 +1367,7 @@
                         const selectedOption = inputElement.options[inputElement.selectedIndex];
                         current[arrayName][index] = {
                             "@id": value,
-                            "rdfs:label": {
-                                "@value": selectedOption.text
-                            }
+                            "rdfs:label": selectedOption.text
                         };
                     } else if (value) {
                         // Already structured from ontology search input or other object
@@ -1339,9 +1398,7 @@
                         const selectedOption = inputElement.options[inputElement.selectedIndex];
                         current[lastPart] = {
                             "@id": value,
-                            "rdfs:label": {
-                                "@value": selectedOption.text
-                            }
+                            "rdfs:label": selectedOption.text
                         };
                     } else if (value && value !== null && value !== '') {
                         // Already structured from ontology search input
