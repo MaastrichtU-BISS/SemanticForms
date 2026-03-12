@@ -7,5 +7,5 @@ SPARQLWrapper==2.0.0
 pytz==2024.2
 tzlocal==5.2
 
-Authlib==1.4.1
+Authlib==1.6.5
 python-dotenv==1.0.1
