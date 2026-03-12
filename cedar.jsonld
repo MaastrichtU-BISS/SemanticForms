@@ -1,0 +1,515 @@
+{
+  "@context": {
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "pav": "http://purl.org/pav/",
+    "schema": "http://schema.org/",
+    "oslc": "http://open-services.net/ns/core#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "rdfs:label": {
+      "@type": "xsd:string"
+    },
+    "schema:isBasedOn": {
+      "@type": "@id"
+    },
+    "schema:name": {
+      "@type": "xsd:string"
+    },
+    "schema:description": {
+      "@type": "xsd:string"
+    },
+    "pav:derivedFrom": {
+      "@type": "@id"
+    },
+    "pav:createdOn": {
+      "@type": "xsd:dateTime"
+    },
+    "pav:createdBy": {
+      "@type": "@id"
+    },
+    "pav:lastUpdatedOn": {
+      "@type": "xsd:dateTime"
+    },
+    "oslc:modifiedBy": {
+      "@type": "@id"
+    },
+    "skos:notation": {
+      "@type": "xsd:string"
+    },
+    "General Model Information": "https://schema.metadatacenter.org/properties/61b8809b-12c4-44e8-8a51-cfcfd13fc87d",
+    "Outcome": "https://schema.metadatacenter.org/properties/e45d35b4-90a1-4da5-96d8-d11c947a88a4",
+    "Applicability criteria": "https://schema.metadatacenter.org/properties/80f4b20e-9da8-493c-a380-10859551014f",
+    "Foundational model or algorithm used": "https://schema.metadatacenter.org/properties/f9370862-b55f-4e91-b4c5-4d216ee38d6b",
+    "Primary intended use(s)": "https://schema.metadatacenter.org/properties/15e1ff32-aa1d-4318-a818-f7de336469d6",
+    "Primary intended users": "https://schema.metadatacenter.org/properties/60e22218-fc13-4d44-b115-77310f8e7501",
+    "Out-of-scope use cases": "https://schema.metadatacenter.org/properties/3ce0ea76-1209-4f15-bdf3-d728b38b55ef",
+    "Data": "https://schema.metadatacenter.org/properties/eb491acc-f4a5-4e9e-8c3d-62a7e30099af",
+    "Human life": "https://schema.metadatacenter.org/properties/d0ffc5a7-bd62-4187-b2f0-07a66f897837",
+    "Mitigations": "https://schema.metadatacenter.org/properties/a00fcb24-bbc0-4689-aabd-c54792413a16",
+    "Risks and harms": "https://schema.metadatacenter.org/properties/4feab147-4d43-434e-a340-7970e695eb2c",
+    "Use cases": "https://schema.metadatacenter.org/properties/a6e4f2d0-50bc-403a-a969-568b11a5c509",
+    "Additional concerns": "https://schema.metadatacenter.org/properties/4ee36e81-2af5-4128-9ec0-048349f3665c",
+    "Outcome label": "https://schema.metadatacenter.org/properties/a39ebe1a-2c26-46db-b6cc-0be37dc898ee",
+    "Previous model tests1": "https://schema.metadatacenter.org/properties/a54b4b1b-6aaf-480e-8dc5-69f950f7a478",
+    "Evaluation results1": "https://schema.metadatacenter.org/properties/1626b87c-50af-4d44-940b-37dddb12d116",
+    "Input data1": "https://schema.metadatacenter.org/properties/64dd7e02-def4-4d72-b1e1-d7402998fdb5",
+    "Outcome type": "https://schema.metadatacenter.org/properties/63c117c6-dcdb-48e5-bd00-916ba7964f08"
+  },
+  "General Model Information": {
+    "@context": {
+      "Title": "https://schema.metadatacenter.org/properties/6610ba27-0f64-4b57-913d-8f673b5eceb1",
+      "Editor Note": "https://schema.metadatacenter.org/properties/d1ceb33d-b777-491a-a584-3810a1d9ab3f",
+      "Created by": "https://schema.metadatacenter.org/properties/91aa48d3-cd57-4b56-81b7-a75ff33c57f0",
+      "References to papers": "https://schema.metadatacenter.org/properties/5a0fa59e-d3e3-41d1-a734-57fb950ae7b8",
+      "Contact email": "https://schema.metadatacenter.org/properties/045be6c2-a26f-4ca8-b0c2-e872036def9a",
+      "Creation date": "https://schema.metadatacenter.org/properties/87af2a5e-2f89-4448-9143-369705fef329",
+      "References to code": "https://schema.metadatacenter.org/properties/1eb8a612-f726-4b6a-aa8f-1ebff646774d",
+      "Software License": "https://schema.metadatacenter.org/properties/cfc3fb18-f0a9-45f3-a9ac-bebae520ac12",
+      "FAIRmodels image name": "https://schema.metadatacenter.org/properties/f75e9b9c-0891-4040-849d-fdc034a35e7d",
+      "Docker image details (exposed port)": "https://schema.metadatacenter.org/properties/7c3bdcc2-6c2e-48f5-b670-880ae1cf743d",
+      "Description": "https://schema.metadatacenter.org/properties/4503a03e-f6f5-476a-88e4-d6c21e114d54",
+      "List of authors": "https://schema.metadatacenter.org/properties/8a996f31-8e01-476f-a8f3-2a0dbb17694f",
+      "Target organ": "https://schema.metadatacenter.org/properties/734771e3-d0f3-4669-ac75-fa8414ef59e3",
+      "Data type": "https://schema.metadatacenter.org/properties/2c2dacaa-e985-477f-906e-5196e7b5c993",
+      "Developed at CDS (Maastro)": "https://schema.metadatacenter.org/properties/f972d84a-c436-4c37-9056-fa6608d909c4",
+      "External validation done": "https://schema.metadatacenter.org/properties/b2660137-c6cc-4076-a13f-00a10e13d32f"
+    },
+    "Title": {
+      "@value": "Kate test"
+    },
+    "Editor Note": {
+      "@value": null
+    },
+    "Created by": {
+      "@value": "Kate Akhmad"
+    },
+    "References to papers": [
+      {
+        "@value": "https://doi.org/10.1016/j.radonc.2010.12.002"
+      }
+    ],
+    "Contact email": {
+      "@value": "kateakhmad@gmail.com"
+    },
+    "Creation date": {
+      "@value": "2026-03-09",
+      "@type": "xsd:date"
+    },
+    "References to code": [
+      {
+        "@value": null
+      }
+    ],
+    "Software License": {
+      "@id": "http://www.ebi.ac.uk/swo/license/SWO_1000001",
+      "rdfs:label": "Creative Commons"
+    },
+    "FAIRmodels image name": {
+      "@value": "ghcr.io/maastrichtu-cds/faivor_models/stiphout_pcr_clinical:latest"
+    },
+    "Docker image details (exposed port)": {
+      "@value": "8000"
+    },
+    "Description": {
+      "@value": "test stiphout model"
+    },
+    "List of authors": {
+      "@value": null
+    },
+    "Target organ": {
+      "@id": "http://purl.org/sig/ont/fma/fma14544",
+      "rdfs:label": "Rectum"
+    },
+    "Data type": [
+      {
+        "@value": "tabular data"
+      }
+    ],
+    "Developed at CDS (Maastro)": [
+      {
+        "@value": "Yes"
+      }
+    ],
+    "External validation done": [
+      {
+        "@value": "No"
+      }
+    ],
+    "@id": "https://repo.metadatacenter.org/template-element-instances/42727034-d9a2-4b2f-9ff0-91583178db81"
+  },
+  "Outcome": {
+    "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C123603",
+    "rdfs:label": "Pathologic Complete Response"
+  },
+  "Applicability criteria": [
+    {
+      "@value": "Patients diagnosed with rectal cancer"
+    }
+  ],
+  "Foundational model or algorithm used": {
+    "@id": "https://w3id.org/aio/LogisticRegression",
+    "rdfs:label": "Logistic Regression"
+  },
+  "Primary intended use(s)": [
+    {
+      "@value": "Prediction of pathologic complete response before start of treatment"
+    }
+  ],
+  "Primary intended users": [
+    {
+      "@value": "Clinicians"
+    }
+  ],
+  "Out-of-scope use cases": [
+    {
+      "@value": null
+    }
+  ],
+  "Data": [
+    {
+      "@value": null
+    }
+  ],
+  "Human life": [
+    {
+      "@value": null
+    }
+  ],
+  "Mitigations": [
+    {
+      "@value": null
+    }
+  ],
+  "Risks and harms": [
+    {
+      "@value": null
+    }
+  ],
+  "Use cases": {
+    "@value": null
+  },
+  "Additional concerns": {
+    "@value": null
+  },
+  "Outcome label": {
+    "@value": "pCR"
+  },
+  "Previous model tests1": [
+    {
+      "@context": {
+        "Performance metric": "https://schema.metadatacenter.org/properties/f95c7b9f-a5bc-410b-ad38-d719a3044fe4",
+        "Link to dataset": "https://schema.metadatacenter.org/properties/d750fe0d-6813-4536-a918-bd9218f472bf",
+        "Link to reference paper": "https://schema.metadatacenter.org/properties/d59a2224-fbe8-4380-b66b-a2cc05c6b3ae",
+        "Notes": "https://schema.metadatacenter.org/properties/c6428800-ffc3-41b6-986a-3a95ae936c6e"
+      },
+      "Performance metric": [
+        {
+          "@context": {
+            "Metric Label": "https://schema.metadatacenter.org/properties/f247f273-151f-4c1d-bd69-8ed6a728ed33",
+            "Measured metric (mean value)": "https://schema.metadatacenter.org/properties/e6a0cec6-e37d-431c-8480-e3eba2f0d071",
+            "Acceptance level": "https://schema.metadatacenter.org/properties/668d9bbc-ae81-4af0-a11e-7a401c409f98",
+            "Additional information (if needed)": "https://schema.metadatacenter.org/properties/cbcf4b91-fcb5-4462-8eae-77cba960c0e0",
+            "Measured metric (lower bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/d93c93b8-f1ce-4d2b-b78d-1b0f2d0c1ef2",
+            "Measured metric (upper bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/5aa71926-22e4-4628-b563-5c116fd8f67e"
+          },
+          "Metric Label": {},
+          "Measured metric (mean value)": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Acceptance level": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Additional information (if needed)": {
+            "@value": null
+          },
+          "Measured metric (lower bound of the 95% confidence interval)": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Measured metric (upper bound of the 95% confidence interval)": {
+            "@value": null
+          },
+          "@id": "https://repo.metadatacenter.org/template-element-instances/61959fc3-0827-48ab-81b3-5f94dcba6a6f"
+        }
+      ],
+      "Link to dataset": {},
+      "Link to reference paper": {},
+      "Notes": {
+        "@value": null
+      },
+      "@id": "https://repo.metadatacenter.org/template-element-instances/06de9090-e85c-4af3-8683-afaf4ebf4132"
+    }
+  ],
+  "Evaluation results1": [
+    {
+      "@context": {
+        "Performance metric": "https://schema.metadatacenter.org/properties/e3fc4bb2-5c13-4ac5-9dbd-1ec0b6b1c406",
+        "sha256 of docker image": "https://schema.metadatacenter.org/properties/bf01e549-190e-4429-8a97-4880e2144968",
+        "User Note": "https://schema.metadatacenter.org/properties/59fd38ff-bb00-4ef7-9283-3f7dfbd296c6",
+        "Dataset characteristics": "https://schema.metadatacenter.org/properties/dc4a07fc-2645-4c70-9330-3e249031f046",
+        "user or hospital": "https://schema.metadatacenter.org/properties/1f03bb07-331b-4675-bbe6-6605eeaceabd"
+      },
+      "Performance metric": [
+        {
+          "@context": {
+            "Metric Label": "https://schema.metadatacenter.org/properties/f247f273-151f-4c1d-bd69-8ed6a728ed33",
+            "Measured metric (mean value)": "https://schema.metadatacenter.org/properties/e6a0cec6-e37d-431c-8480-e3eba2f0d071",
+            "Acceptance level": "https://schema.metadatacenter.org/properties/668d9bbc-ae81-4af0-a11e-7a401c409f98",
+            "Additional information (if needed)": "https://schema.metadatacenter.org/properties/cbcf4b91-fcb5-4462-8eae-77cba960c0e0",
+            "Measured metric (lower bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/d93c93b8-f1ce-4d2b-b78d-1b0f2d0c1ef2",
+            "Measured metric (upper bound of the 95% confidence interval)": "https://schema.metadatacenter.org/properties/5aa71926-22e4-4628-b563-5c116fd8f67e"
+          },
+          "Metric Label": {},
+          "Measured metric (mean value)": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Acceptance level": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Additional information (if needed)": {
+            "@value": null
+          },
+          "Measured metric (lower bound of the 95% confidence interval)": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Measured metric (upper bound of the 95% confidence interval)": {
+            "@value": null
+          },
+          "@id": "https://repo.metadatacenter.org/template-element-instances/38cb287c-f4e0-4f68-8e8b-efcd7e8191d1"
+        }
+      ],
+      "sha256 of docker image": {
+        "@value": null
+      },
+      "User Note": {
+        "@value": null
+      },
+      "Dataset characteristics": [
+        {
+          "@context": {
+            "Input feature": "https://schema.metadatacenter.org/properties/f53523d7-aa41-46c2-b8ab-39772bce6037",
+            "Volume": "https://schema.metadatacenter.org/properties/3aaeb721-75db-4257-915f-3b49a2f9b5b9",
+            "The characteristics of dataset": "https://schema.metadatacenter.org/properties/105fdab7-6612-4209-bc80-3def1013a9a1",
+            "Number of missing values": "https://schema.metadatacenter.org/properties/e3a95563-8ac6-4cd3-b9df-23412bc0283c",
+            "Categories distribution": "https://schema.metadatacenter.org/properties/19741c6b-354a-47bd-a934-9b96a747b5b6",
+            "The number of subject for evaluation": "https://schema.metadatacenter.org/properties/ce4ca156-2fc2-4072-8c8e-9b8c29016c18",
+            "The mean value - for numerical feature": "https://schema.metadatacenter.org/properties/0b258d16-e907-4f5b-9ff3-1d77d20fdabb",
+            "The lower bound of the 95% confidence interval": "https://schema.metadatacenter.org/properties/0f2bc2b0-37e6-4392-aec1-41c86a61d009",
+            "The upper bound of the  95% confidence interval": "https://schema.metadatacenter.org/properties/ea2134fc-80dc-44df-9120-1b8be9f5c089"
+          },
+          "Input feature": {},
+          "Volume": {
+            "@value": null
+          },
+          "The characteristics of dataset": {
+            "@value": null
+          },
+          "Number of missing values": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "Categories distribution": [
+            {
+              "@context": {
+                "Category Label": "https://schema.metadatacenter.org/properties/e6cf70d0-7e05-4122-b318-b4d93ee63c86",
+                "Distribution for category": "https://schema.metadatacenter.org/properties/0ff233ed-291e-40d4-96b1-ef71bd5d5871"
+              },
+              "Category Label": {},
+              "Distribution for category": {
+                "@value": null
+              },
+              "@id": "https://repo.metadatacenter.org/template-element-instances/aed158d6-c6c6-4aeb-8a98-64e2122eeee9"
+            }
+          ],
+          "The number of subject for evaluation": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "The mean value - for numerical feature": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "The lower bound of the 95% confidence interval": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "The upper bound of the  95% confidence interval": {
+            "@value": null,
+            "@type": "xsd:decimal"
+          },
+          "@id": "https://repo.metadatacenter.org/template-element-instances/1d7ec19e-93e2-434f-8de7-4ba196cf4271"
+        }
+      ],
+      "user or hospital": {
+        "@value": null
+      },
+      "@id": "https://repo.metadatacenter.org/template-element-instances/12e9fea2-230c-42ab-8408-a6d41667f3e0"
+    }
+  ],
+  "Input data1": [
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Description": {
+        "@value": null
+      },
+      "Type of input": {
+        "@value": "numerical"
+      },
+      "Minimum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": "25",
+        "@type": "xsd:decimal"
+      },
+      "Categories": [],
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C200479",
+        "rdfs:label": "Tumor Length"
+      },
+      "Input label": {
+        "@value": "tLength"
+      },
+      "@id": "https://repo.metadatacenter.org/template-element-instances/8284f50e-d506-46a4-be46-33aec5a305e2"
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Description": {
+        "@value": null
+      },
+      "Type of input": {
+        "@value": "categorical"
+      },
+      "Minimum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Categories": [],
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C48885",
+        "rdfs:label": "Generic Primary Tumor TNM Finding"
+      },
+      "Input label": {
+        "@value": "cT"
+      },
+      "@id": "https://repo.metadatacenter.org/template-element-instances/5a366b1f-c58a-4420-afa4-0779d0b9f275"
+    },
+    {
+      "@context": {
+        "Description": "https://schema.metadatacenter.org/properties/4c6f052b-1e7d-4565-88a9-494d8aafcb31",
+        "Type of input": "https://schema.metadatacenter.org/properties/95342d30-2c39-4919-876d-ae3e95961b20",
+        "Minimum - for numerical": "https://schema.metadatacenter.org/properties/9e41f733-5b8b-499a-9248-29dbccd2e270",
+        "Maximum - for numerical": "https://schema.metadatacenter.org/properties/c471135e-7017-4ae6-a78b-669adf181265",
+        "Categories": "https://schema.metadatacenter.org/properties/2c885c9f-73b1-4442-aa25-f7800a8f9911",
+        "Input feature": "https://schema.metadatacenter.org/properties/f6df0f4f-af95-4d52-b003-f9d6d1b474db",
+        "Input label": "https://schema.metadatacenter.org/properties/c445b2c0-9b1e-46ac-909d-7e8fd7c9e8ae"
+      },
+      "Description": {
+        "@value": null
+      },
+      "Type of input": {
+        "@value": "categorical"
+      },
+      "Minimum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Maximum - for numerical": {
+        "@value": null,
+        "@type": "xsd:decimal"
+      },
+      "Categories": [
+        {
+          "@context": {
+            "Category Label": "https://schema.metadatacenter.org/properties/e6cf70d0-7e05-4122-b318-b4d93ee63c86",
+            "Identification for category used in model": "https://schema.metadatacenter.org/properties/0ff233ed-291e-40d4-96b1-ef71bd5d5871"
+          },
+          "Category Label": {
+            "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C48705",
+            "rdfs:label": "N0 TNM Finding"
+          },
+          "Identification for category used in model": {
+            "@value": "0"
+          }
+        },
+        {
+          "@context": {
+            "Category Label": "https://schema.metadatacenter.org/properties/e6cf70d0-7e05-4122-b318-b4d93ee63c86",
+            "Identification for category used in model": "https://schema.metadatacenter.org/properties/0ff233ed-291e-40d4-96b1-ef71bd5d5871"
+          },
+          "Category Label": {
+            "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C48706",
+            "rdfs:label": "N1 TNM Finding"
+          },
+          "Identification for category used in model": {
+            "@value": "1"
+          }
+        },
+        {
+          "@context": {
+            "Category Label": "https://schema.metadatacenter.org/properties/e6cf70d0-7e05-4122-b318-b4d93ee63c86",
+            "Identification for category used in model": "https://schema.metadatacenter.org/properties/0ff233ed-291e-40d4-96b1-ef71bd5d5871"
+          },
+          "Category Label": {
+            "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C48786",
+            "rdfs:label": "N2 TNM Finding"
+          },
+          "Identification for category used in model": {
+            "@value": "2"
+          }
+        }
+      ],
+      "Input feature": {
+        "@id": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C48884",
+        "rdfs:label": "Generic Regional Lymph Nodes TNM Finding"
+      },
+      "Input label": {
+        "@value": "cN"
+      }
+    }
+  ],
+  "Outcome type": {
+    "@value": "Class (binary or multi class)"
+  },
+  "21c6f103-2897-46e4-9800-d6756aec8fea": {},
+  "eb387f72-1d95-42fd-a368-dc157fd6d8bc": {},
+  "8a5c5fda-0607-4cbf-8941-a8be9d05a83b": {},
+  "202471c3-13e6-42af-a104-3df02b9e0507": {},
+  "9128f569-aca5-487d-93d6-3a99ad2073a1": {},
+  "1bb43806-9e82-4e65-86f9-cebb4e7f3b38": {},
+  "b4db2a96-c081-453b-b09c-caf7516d147d": {},
+  "schema:isBasedOn": "https://repo.metadatacenter.org/templates/e1c5e285-a2e6-43df-9bfa-1de71f6a59e3",
+  "schema:name": "Model Card metadata",
+  "schema:description": "The update template for FAIVOR project",
+  "pav:createdOn": "2026-03-12T08:43:07-07:00",
+  "pav:createdBy": "https://metadatacenter.org/users/d005592d-1c56-420c-9520-52f43c300f34",
+  "pav:lastUpdatedOn": "2026-03-12T08:43:07-07:00",
+  "oslc:modifiedBy": "https://metadatacenter.org/users/d005592d-1c56-420c-9520-52f43c300f34",
+  "@id": "https://repo.metadatacenter.org/template-instances/0fb3231f-1b72-4a3d-be13-32ea601eadfc"
+}

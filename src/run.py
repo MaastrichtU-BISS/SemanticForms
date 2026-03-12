@@ -178,8 +178,8 @@ def logout():
 @app.route("/add")
 def cee():
     # Test authentication or send HTTP 401 error
-    if not session.get("user"):
-        return redirect("/login")
+    # if not session.get("user"):
+    #     return redirect("/login")
     
     bioportal_key = config.get("bioportal", {}).get("api_key", "")
     return render_template("form.html", 

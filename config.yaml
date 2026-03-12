@@ -1,13 +1,14 @@
 server:
   storageFolder: ./data
-# Default API key used for CEDAR templates (can be overridden per template)
-api_key: api_key
 template:
-  source: cedar
-  templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
+  source: file
+  location: template.json
+  #source: cedar
+  #api_key: 6016177645f66555aa2e90fdfa523036127f586c731b8275158759921c21b304
+  #templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3 
   storage: local
-  instance_base_url: http://localhost
-  title_predicate: title
+  instance_base_url: http://localhost:5000
+  title_predicate: "title"
 bioportal:
   api_key: 8b5b7825-538d-40e0-9e9e-5ab9274a9aeb
 tableColumns:
@@ -20,37 +21,3 @@ tableColumns:
     label: "Date created"
   - property: "General Model Information.Developed at CDS (Maastro)"
     label: "Organisation"
-# Optional: Project functionality configuration
-# Uncomment and configure to enable multi-phase project workflow
-projects:
-  enabled: true
-  # Optional: CEDAR template for project metadata
-  project_metadata_template:
-    source: cedar
-    templateId: 100bf5b8-a42e-4fe7-aaf3-c3305626cc54
-    # Specify which field to use as the project name (supports dot notation for nested fields)
-    name_predicate: Title  # or use 'title' or nested like 'General.Name'
-    # # Optional: specify which field to use as the project description
-    # description_predicate: description  # or use nested like 'General.Description'
-  # Define project phases and their associated templates/questionnaires
-  phases:
-    - name: "Phase 1: Pre-registration"
-      template:
-        source: cedar
-        templateId: 2781be7e-b18f-45d0-9c89-014c01f2ddf7
-        title_predicate: Title
-    - name: "Phase 2: Training data description"
-      template:
-        source: cedar
-        templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
-        title_predicate: title
-    - name: "Phase 3: Model description"
-      template:
-        source: cedar
-        templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
-        title_predicate: title
-    - name: "Phase 4: Evaluation"
-      template:
-        source: cedar
-        templateId: e1c5e285-a2e6-43df-9bfa-1de71f6a59e3
-        title_predicate: title
