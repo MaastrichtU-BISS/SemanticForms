@@ -349,7 +349,7 @@ def store():
         fileNameJson = os.path.join(config['server']['storageFolder'], f"{session_id}.jsonld")
         target["schema:isBasedOn"] = template['@id']
         target["pav:createdOn"] = datetime.datetime.now(local_tz).isoformat()
-        target["@id"] = f"{config['template']['instance_base_url']}/{session_id}"
+        target["@id"] = f"{config['template']['instance_base_url']}/instance/{session_id}"
     else:
         data_to_store_info = data_to_store["info"]
         fileNameJson = data_to_store_info['fileName']

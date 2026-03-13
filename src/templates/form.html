@@ -1596,41 +1596,115 @@
          * Search BioPortal API
          */
         async searchBioPortal(query, constraints) {
-            const params = new URLSearchParams({
+            const searchParamsList = this.buildBioPortalSearchParams(query, constraints);
+            let lastError = null;
+
+            for (const params of searchParamsList) {
+                const url = `https://data.bioontology.org/search?${params.toString()}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `apikey token=${bioportalApiKey}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return this.parseBioPortalResults(data);
+                }
+
+                lastError = new Error(`BioPortal API error (${response.status})`);
+                if (response.status !== 400) {
+                    break;
+                }
+            }
+
+            throw lastError || new Error('BioPortal API error');
+        }
+
+        buildBioPortalSearchParams(query, constraints) {
+            const baseParams = new URLSearchParams({
                 q: query,
                 pagesize: 20,
                 suggest: true
             });
+            const ontologyCandidates = this.getOntologyCandidates(constraints);
+            const branchRootUri = constraints.branches?.[0]?.uri;
 
-            // Add ontology filters
-            if (constraints.ontologies && constraints.ontologies.length > 0) {
-                const acronyms = constraints.ontologies.map(o => o.acronym).join(',');
-                params.append('ontologies', acronyms);
+            if (branchRootUri && ontologyCandidates.length > 0) {
+                return ontologyCandidates.map(acronym => {
+                    const params = new URLSearchParams(baseParams);
+                    params.set('ontology', acronym);
+                    params.set('subtree_root_id', branchRootUri);
+                    return params;
+                });
             }
 
-            // Add branch filters (root class URI)
-            if (constraints.branches && constraints.branches.length > 0) {
-                const rootUri = constraints.branches[0].uri;
-                if (rootUri) {
-                    params.append('subtree_root_id', rootUri);
-                }
+            if (ontologyCandidates.length > 0) {
+                baseParams.set('ontologies', ontologyCandidates.join(','));
             }
 
-            const url = `https://data.bioontology.org/search?${params.toString()}`;
-            
-            const response = await fetch(url, {
-                headers: {
-                    'Authorization': `apikey token=${bioportalApiKey}`,
-                    'Accept': 'application/json'
+            return [baseParams];
+        }
+
+        getOntologyCandidates(constraints) {
+            const candidates = [];
+            const addCandidate = candidate => {
+                const normalized = this.normalizeOntologyCandidate(candidate);
+                if (normalized && !candidates.includes(normalized)) {
+                    candidates.push(normalized);
                 }
+            };
+
+            (constraints.ontologies || []).forEach(ontology => {
+                addCandidate(ontology.acronym);
+                addCandidate(this.extractOntologyAcronym(ontology.uri));
             });
 
-            if (!response.ok) {
-                throw new Error('BioPortal API error');
+            (constraints.branches || []).forEach(branch => {
+                addCandidate(this.inferOntologyAcronymFromUri(branch.uri));
+                addCandidate(this.extractAcronymFromSource(branch.source));
+                addCandidate(branch.acronym);
+            });
+
+            return candidates;
+        }
+
+        normalizeOntologyCandidate(candidate) {
+            if (!candidate || typeof candidate !== 'string') {
+                return null;
             }
 
-            const data = await response.json();
-            return this.parseBioPortalResults(data);
+            const trimmed = candidate.trim();
+            if (!trimmed || trimmed.toLowerCase() === 'unknown') {
+                return null;
+            }
+
+            const normalized = trimmed.toUpperCase();
+            return /^[A-Z0-9_-]+$/.test(normalized) ? normalized : null;
+        }
+
+        extractAcronymFromSource(source) {
+            if (!source || typeof source !== 'string') {
+                return null;
+            }
+
+            const match = source.match(/\(([A-Za-z0-9_-]+)\)\s*$/);
+            return match ? match[1] : null;
+        }
+
+        inferOntologyAcronymFromUri(uri) {
+            if (!uri || typeof uri !== 'string') {
+                return null;
+            }
+
+            const bioPortalAcronym = this.extractOntologyAcronym(uri);
+            if (bioPortalAcronym !== 'Unknown') {
+                return bioPortalAcronym;
+            }
+
+            const compactUriMatch = uri.match(/(?:\/|#)([A-Za-z][A-Za-z0-9]+)[_:][A-Za-z0-9]+$/);
+            return compactUriMatch ? compactUriMatch[1] : null;
         }
 
         /**
