@@ -232,9 +232,6 @@ def delete_instance(identifier: str):
 
 @app.route("/instance/<identifier>")
 def showInstance(identifier: str):
-    # Test authentication or to login page
-    if not session.get("user"):
-        return redirect("/login")
     
     filename = persistance.get_instance(identifier)['filename']
     with open(filename, "r") as f:
