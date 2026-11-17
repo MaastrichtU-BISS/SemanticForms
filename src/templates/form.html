@@ -1859,7 +1859,7 @@
         redirectUrl = null; // Will be determined from response
         {% elif is_project_mode and project_id and phase_name %}
         // Project phase mode: use project-specific endpoint
-        url = window.location.origin + '/api/projects/{{ project_id }}/phase/{{ phase_name }}/store';
+        url = window.location.origin + '/api/projects/{{ project_id }}/phase/{{ phase_name | urlencode }}/store';
         redirectUrl = '/projects/{{ project_id }}';
         {% else %}
         // Standard mode: use regular endpoint
