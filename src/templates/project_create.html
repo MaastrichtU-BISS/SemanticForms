@@ -22,6 +22,15 @@
 </div>
 {% endblock %}
 
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb bg-transparent px-0">
+        <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
+        <li class="breadcrumb-item active" aria-current="page">New project</li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
 <h1>Create New Project</h1>
 

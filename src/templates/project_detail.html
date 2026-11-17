@@ -35,9 +35,19 @@
 </div>
 {% endblock %}
 
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb bg-transparent px-0">
+        <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ project.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>{{ project.name }}</h1>
+<div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+    <h1 class="mb-0">{{ project.name }}</h1>
+    <a href="/projects" class="btn btn-outline-secondary btn-sm">← Back to projects</a>
 </div>
 
 {% if project.description %}

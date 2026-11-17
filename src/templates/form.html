@@ -1,5 +1,21 @@
 {% extends "layout.html" %}
 
+{% block breadcrumb %}
+{% if is_project_create or is_project_mode %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb bg-transparent px-0">
+        <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
+        {% if is_project_create %}
+        <li class="breadcrumb-item active" aria-current="page">New project</li>
+        {% else %}
+        <li class="breadcrumb-item"><a href="/projects/{{ project_id }}">{{ project.name if project else 'Project' }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ phase_name }}</li>
+        {% endif %}
+    </ol>
+</nav>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <style>
     .ontology-field-container {

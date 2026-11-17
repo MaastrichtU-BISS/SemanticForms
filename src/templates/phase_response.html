@@ -1,6 +1,15 @@
 {% extends "layout.html" %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb bg-transparent px-0">
+        <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
+        <li class="breadcrumb-item"><a href="/projects/{{ project.id }}">{{ project.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ phase_name }}</li>
+    </ol>
+</nav>
+{% endblock %}
 {% block content %}
-<div class="container-fluid mt-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1>Phase Response Details</h1>

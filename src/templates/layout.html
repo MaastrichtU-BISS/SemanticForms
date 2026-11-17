@@ -185,6 +185,11 @@
           <li class="nav-item">
             <a class="nav-link" href="/">Home</a>
           </li>
+          {% if projects_enabled %}
+          <li class="nav-item">
+            <a class="nav-link" href="/projects">Projects</a>
+          </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="https://github.com/MaastrichtU-CDS/SemanticForms">GitHub</a>
           </li>
@@ -215,7 +220,10 @@
     <div class="filter-sidebar">{% block sidebar %}{% endblock %}</div>
     
     <!-- Main Content Area -->
-    <div class="container pt-5 content-area">{% block content %}{% endblock %}</div>
+    <div class="container pt-4 content-area">
+      {% block breadcrumb %}{% endblock %}
+      {% block content %}{% endblock %}
+    </div>
 </body>
 
 </html>

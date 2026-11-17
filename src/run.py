@@ -97,6 +97,7 @@ def can_manage_project(project) -> bool:
     return owner_sub is not None and owner_sub == user.get("sub")
 
 app.jinja_env.globals["can_manage_project"] = can_manage_project
+app.jinja_env.globals["projects_enabled"] = config.get("projects", {}).get("enabled", False)
 
 def render_template(
     template_name_or_list: str | Template | list[str | Template],
@@ -679,6 +680,7 @@ def add_phase_response(project_id: str, phase_index: int):
                          templateObject=phase_template,
                          bioportal_api_key=bioportal_key,
                          project_id=project_id,
+                         project=persistance.get_project(project_id, config),
                          phase_name=phase.get("name"),
                          phase_index=phase_index,
                          is_project_mode=True)
@@ -749,6 +751,7 @@ def edit_phase_response(project_id: str, phase_name: str, response_id: str):
                          formInfo=infoData,
                          bioportal_api_key=bioportal_key,
                          project_id=project_id,
+                         project=persistance.get_project(project_id, config),
                          phase_name=phase_name,
                          phase_index=phase_index,
                          is_project_mode=True)
