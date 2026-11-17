@@ -760,7 +760,7 @@ def count_started_phases(project_id: str) -> int:
         return 0
     return len([name for name, items in responses.items() if items and name in phase_names])
 
-PROJECT_INTERNAL_FIELDS = ["@id", "@type", "pav:createdOn", "pav:lastUpdatedOn", "created_by", "created_by_sub", "project_name", "description"]
+PROJECT_INTERNAL_FIELDS = ["@id", "@type", "pav:createdOn", "pav:lastUpdatedOn", "pav:lastUpdatedBy", "created_by", "created_by_sub", "project_name", "description"]
 
 def get_project_metadata_template():
     """
@@ -814,7 +814,7 @@ def update_project(project_id: str):
         return {"error": "Forbidden"}, 403
 
     metadata = request.get_json().get("metadata", {})
-    persistance.update_project_metadata(project_id, metadata)
+    persistance.update_project_metadata(project_id, metadata, user_name=session["user"].get("name"))
     return {"message": "ok", "project_id": project_id}
 
 @app.route("/projects/<project_id>/phase/<int:phase_index>/add")
