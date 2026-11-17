@@ -3,7 +3,7 @@ name: Build WebUI
 # Image tags produced (ghcr.io/<owner>/<repo>:<tag>):
 #   push to main               -> main, latest
 #   push to release/X.Y.Z      -> X.Y.Z-rc (latest candidate), X.Y.Z-rc.<run number> (immutable)
-#   git tag X.Y.Z or vX.Y.Z    -> X.Y.Z (the release)
+#   git tag X.Y.Z or vX.Y.Z    -> X.Y.Z (the release) and X.Y (moves to the newest patch release)
 #   push to any other branch   -> <branch name, with characters invalid in docker tags replaced by '-'>
 
 on:
@@ -39,6 +39,10 @@ jobs:
             # Release: build the released version
             VERSION="$(sanitize "${GITHUB_REF_NAME#v}")"
             TAGS="${IMAGE}:${VERSION}"
+            # For X.Y.Z releases also move the X.Y tag, so deployments can follow patch releases
+            if [[ "${VERSION}" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+              TAGS="${TAGS},${IMAGE}:${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+            fi
           elif [[ "${GITHUB_REF_NAME}" == release/* ]]; then
             # Release branch: build a release candidate
             VERSION="${GITHUB_REF_NAME#release/}"
