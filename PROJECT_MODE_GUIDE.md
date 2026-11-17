@@ -18,9 +18,6 @@ To enable project mode, add the `projects` section to your `config.yaml`:
 ```yaml
 projects:
   enabled: true
-  # Optional: users (email, preferred_username or Keycloak sub) who may edit/delete any project
-  admins:
-    - admin@example.org
   # Optional: CEDAR template for project metadata
   project_metadata_template:
     source: cedar
@@ -51,13 +48,13 @@ projects:
 ### Configuration Options
 
 - `enabled`: Set to `true` to enable project mode
-- `admins` (optional): users allowed to edit and delete any project. Other logged-in users can only
-  edit and delete projects (and their responses) they created themselves. Projects created before
-  ownership was recorded can only be managed by admins.
 - `project_metadata_template` (optional): CEDAR template for project metadata collection
 - `phases`: List of project phases, each with:
   - `name`: Display name for the phase
   - `template`: Template configuration (same format as main template config)
+
+Ownership: a project (its metadata and responses) can only be edited/deleted by the Keycloak account
+that created it. Projects created before ownership was recorded cannot be deleted through the UI.
 
 ## Using Project Mode
 

@@ -74,26 +74,15 @@ def accepts(mimetype: str) -> bool:
     """
     return mimetype in (request.accept_mimetypes.best or "")
 
-def is_admin(user) -> bool:
-    """
-    True if the user is listed in projects.admins (by email, preferred_username or sub).
-    """
-    if not user:
-        return False
-    admins = config.get("projects", {}).get("admins", []) or []
-    return any(user.get(key) in admins for key in ("email", "preferred_username", "sub") if user.get(key))
-
 def can_manage_project(project) -> bool:
     """
     True if the logged-in user may edit or delete the given project (dict from persistance.get_project):
-    the creator of the project or a configured admin. Projects without a recorded creator can only be
-    managed by admins.
+    only the Keycloak account (sub) that created the project. Projects without a recorded creator
+    cannot be managed through the UI.
     """
     user = session.get("user")
     if not user:
         return False
-    if is_admin(user):
-        return True
     owner_sub = (project or {}).get("metadata", {}).get("created_by_sub")
     return owner_sub is not None and owner_sub == user.get("sub")
 
@@ -738,7 +727,7 @@ def edit_project(project_id: str):
     except Exception:
         abort(404, description=f"Project {project_id} not found")
     if not can_manage_project(project):
-        abort(403, description="Only the project creator or an administrator can edit this project")
+        abort(403, description="Only the project creator can edit this project")
     template_object = get_project_metadata_template()
     if template_object is None:
         abort(404, description="Project metadata editing requires a project_metadata_template")
@@ -931,7 +920,7 @@ def store_project_phase(project_id, phase_name):
 @app.route("/projects/<project_id>/phase/<phase_name>/response/<response_id>/delete", methods=["POST"])
 def delete_phase_response(project_id: str, phase_name: str, response_id: str):
     """
-    Delete a single phase response. Allowed for the project creator and admins.
+    Delete a single phase response. Allowed for the project creator.
     """
     if not session.get("user"):
         return redirect_to_login()
@@ -942,7 +931,7 @@ def delete_phase_response(project_id: str, phase_name: str, response_id: str):
     except Exception:
         abort(404, description=f"Response {response_id} not found in project {project_id}")
     if not can_manage_project(project):
-        abort(403, description="Only the project creator or an administrator can delete responses")
+        abort(403, description="Only the project creator can delete responses")
 
     persistance.delete_project_phase_response(project_id, response_id)
     return redirect(f"/projects/{project_id}")
@@ -961,7 +950,7 @@ def delete_project(project_id: str):
     except Exception:
         abort(404, description=f"Project {project_id} not found")
     if not can_manage_project(project):
-        abort(403, description="Only the project creator or an administrator can delete this project")
+        abort(403, description="Only the project creator can delete this project")
 
     persistance.delete_project(project_id)
     return redirect("/projects")
