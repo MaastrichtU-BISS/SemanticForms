@@ -8,6 +8,7 @@ import yaml
 import os
 import requests
 import uuid
+import time
 from urllib.parse import quote
 import json
 from rdflib import Graph
@@ -331,6 +332,34 @@ def showInstance(identifier: str):
                          templateObject=templateObject)
 
 
+# In-memory cache of CEDAR templates: {template_id: (fetched_at, template)}
+_cedar_template_cache = {}
+
+def fetch_cedar_template(template_id: str, api_key: str = None):
+    """
+    Fetch a CEDAR template (via the API with an api key, or via OpenView without), cached in memory
+    for server.template_cache_seconds (default 600) so pages do not wait on CEDAR for every request.
+    """
+    ttl = config.get("server", {}).get("template_cache_seconds", 600)
+    cached = _cedar_template_cache.get(template_id)
+    if cached and time.time() - cached[0] < ttl:
+        return cached[1]
+
+    if api_key:
+        headers = {
+            "Authorization": f"apiKey {api_key}",
+            "Content-Type": "application/json"
+        }
+        response = requests.get(f"https://repo.metadatacenter.org/templates/{template_id}", headers=headers)
+    else:
+        response = requests.get(f"https://open.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2F{template_id}")
+
+    template = json.loads(response.text)
+    # Only cache successful lookups (a template always has an @id)
+    if isinstance(template, dict) and "@id" in template:
+        _cedar_template_cache[template_id] = (time.time(), template)
+    return template
+
 def get_template():
     """
     Get template from cedar itself, or from a local json-ld file
@@ -350,19 +379,9 @@ def get_template():
     API key can be specified in template config or at top level as 'api_key'
     """
     if config['template']['source'] == 'cedar':
-        response=None
         # Check for api_key in template config, then fall back to top-level api_key
         api_key = config['template'].get('api_key') or config.get('api_key')
-        if api_key:
-            headers = {
-                "Authorization": f"apiKey {api_key}",
-                "Content-Type": "application/json"
-            }
-            response = requests.get(f"https://repo.metadatacenter.org/templates/{config['template']['templateId']}", headers=headers)
-        else:
-            response = requests.get(f"https://open.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2F{config['template']['templateId']}")
-
-        return json.loads(response.text)
+        return fetch_cedar_template(config['template']['templateId'], api_key)
     
     if config['template']['source'] == 'file':
         template = { }
@@ -1051,24 +1070,9 @@ def get_template_by_config(template_config):
         return get_template()  # Fall back to default
     
     if template_config.get('source') == 'cedar':
-        response = None
         # Check for api_key in template_config, then fall back to top-level api_key
         api_key = template_config.get('api_key') or config.get('api_key')
-        if api_key:
-            headers = {
-                "Authorization": f"apiKey {api_key}",
-                "Content-Type": "application/json"
-            }
-            response = requests.get(
-                f"https://repo.metadatacenter.org/templates/{template_config['templateId']}", 
-                headers=headers
-            )
-        else:
-            response = requests.get(
-                f"https://open.metadatacenter.org/templates/https:%2F%2Frepo.metadatacenter.org%2Ftemplates%2F{template_config['templateId']}"
-            )
-        
-        return json.loads(response.text)
+        return fetch_cedar_template(template_config['templateId'], api_key)
     
     if template_config.get('source') == 'file':
         template = {}
