@@ -8,6 +8,7 @@ import yaml
 import os
 import requests
 import uuid
+from urllib.parse import quote
 import json
 from rdflib import Graph
 import logging
@@ -508,6 +509,28 @@ def store_project_metadata():
     # The name will be extracted dynamically from fields like "project_name", "name", or "title"
     project_id = persistance.create_project(None, metadata)
     return {"message": "ok", "project_id": project_id}
+
+@app.route("/instance/project/<project_id>")
+def resolve_project_uri(project_id: str):
+    """
+    Make the project @id (<instance_base_url>/instance/project/<id>) dereferenceable.
+    Clients keep their Accept header across the redirect, so RDF/JSON-LD negotiation still works.
+    """
+    if not persistance.project_exists(project_id):
+        abort(404, description=f"Project {project_id} not found")
+    return redirect(f"/projects/{project_id}", code=303)
+
+@app.route("/instance/project/<project_id>/phase/<response_id>")
+def resolve_phase_response_uri(project_id: str, response_id: str):
+    """
+    Make the phase response @id (<instance_base_url>/instance/project/<id>/phase/<rid>) dereferenceable.
+    """
+    try:
+        response = persistance.get_project_phase_response(project_id, response_id)
+    except Exception:
+        abort(404, description=f"Response {response_id} not found in project {project_id}")
+    phase = quote(response["phase_name"], safe="")
+    return redirect(f"/projects/{project_id}/phase/{phase}/response/{response_id}", code=303)
 
 @app.route("/projects/<project_id>/phase/<phase_name>/response/<response_id>")
 def view_phase_response(project_id: str, phase_name: str, response_id: str):
