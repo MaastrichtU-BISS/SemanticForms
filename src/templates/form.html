@@ -1,12 +1,15 @@
 {% extends "layout.html" %}
 
 {% block breadcrumb %}
-{% if is_project_create or is_project_mode %}
+{% if is_project_create or is_project_mode or is_project_edit %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb bg-transparent px-0">
         <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
         {% if is_project_create %}
         <li class="breadcrumb-item active" aria-current="page">New project</li>
+        {% elif is_project_edit %}
+        <li class="breadcrumb-item"><a href="/projects/{{ project_id }}">{{ project.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit project information</li>
         {% else %}
         <li class="breadcrumb-item"><a href="/projects/{{ project_id }}">{{ project.name if project else 'Project' }}</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ phase_name }}</li>
@@ -112,7 +115,9 @@
 </style>
 
 <div class="container mt-4">
-    {% if is_project_create %}
+    {% if is_project_edit %}
+    <h1>Edit Project Information</h1>
+    {% elif is_project_create %}
     <h1>Create New Project</h1>
     <p class="text-muted">Fill in the project metadata using the template below.</p>
     {% elif is_project_mode and project_id and phase_name %}
@@ -132,7 +137,7 @@
 
     <div class="mt-4">
         <button type="button" id="save-btn" class="btn btn-primary">{% if is_project_create %}Create Project{% else %}Save{% endif %}</button>
-        <a href="{% if is_project_create %}/projects{% elif is_project_mode and project_id %}/projects/{{ project_id }}{% else %}/{% endif %}" class="btn btn-secondary">Cancel</a>
+        <a href="{% if is_project_create %}/projects{% elif (is_project_mode or is_project_edit) and project_id %}/projects/{{ project_id }}{% else %}/{% endif %}" class="btn btn-secondary">Cancel</a>
     </div>
 </div>
 
@@ -1844,7 +1849,11 @@
         // Determine URL based on context
         let url;
         let redirectUrl;
-        {% if is_project_create %}
+        {% if is_project_edit %}
+        // Project metadata edit mode
+        url = window.location.origin + '/api/projects/{{ project_id }}/store';
+        redirectUrl = '/projects/{{ project_id }}';
+        {% elif is_project_create %}
         // Project creation mode: use project creation endpoint
         url = window.location.origin + '/api/projects/store';
         redirectUrl = null; // Will be determined from response

@@ -1055,8 +1055,10 @@ class FilePersistance(Persistance):
         if os.path.exists(metadata_file):
             with open(metadata_file, 'r') as f:
                 existing = json.load(f)
-                updated_metadata["@id"] = existing.get("@id")
-                updated_metadata["pav:createdOn"] = existing.get("pav:createdOn")
+                # Preserve identity, provenance and ownership; these are never taken from the form
+                for key in ["@id", "@type", "pav:createdOn", "created_by", "created_by_sub"]:
+                    if key in existing:
+                        updated_metadata[key] = existing[key]
         
         updated_metadata["pav:lastUpdatedOn"] = datetime.datetime.now().isoformat()
         

@@ -646,11 +646,69 @@ def project_detail(project_id: str):
         # Default: render HTML view
         return render_template("project_detail.html", 
                              project=project,
+                             project_template=get_project_metadata_template(),
                              phases=phases,
                              phase_responses=phase_responses)
     except Exception as e:
         logging.error(f"Error loading project {project_id}: {e}")
         return redirect("/projects")
+
+PROJECT_INTERNAL_FIELDS = ["@id", "@type", "pav:createdOn", "pav:lastUpdatedOn", "created_by", "created_by_sub", "project_name", "description"]
+
+def get_project_metadata_template():
+    """
+    Return the configured CEDAR template for project metadata, or None if projects use the simple form.
+    """
+    template_config = config.get("projects", {}).get("project_metadata_template")
+    return get_template_by_config(template_config) if template_config else None
+
+@app.route("/projects/<project_id>/edit")
+def edit_project(project_id: str):
+    """
+    Edit the metadata of a project (only when a project metadata template is configured).
+    """
+    if not session.get("user"):
+        return redirect_to_login()
+    try:
+        project = persistance.get_project(project_id, config)
+    except Exception:
+        abort(404, description=f"Project {project_id} not found")
+    if not can_manage_project(project):
+        abort(403, description="Only the project creator or an administrator can edit this project")
+    template_object = get_project_metadata_template()
+    if template_object is None:
+        abort(404, description="Project metadata editing requires a project_metadata_template")
+
+    metadata = project["metadata"]
+    form_data = {k: v for k, v in metadata.items() if k not in PROJECT_INTERNAL_FIELDS}
+    info_data = {"id": metadata.get("@id"), "createdOn": metadata.get("pav:createdOn")}
+    bioportal_key = config.get("bioportal", {}).get("api_key", "")
+    return render_template("form.html",
+                           templateObject=template_object,
+                           formData=form_data,
+                           formInfo=info_data,
+                           bioportal_api_key=bioportal_key,
+                           project_id=project_id,
+                           project=project,
+                           is_project_edit=True)
+
+@app.route("/api/projects/<project_id>/store", methods=["PUT"])
+def update_project(project_id: str):
+    """
+    API endpoint to update the metadata of an existing project.
+    """
+    if not session.get("user"):
+        return {"error": "Unauthorized"}, 401
+    try:
+        project = persistance.get_project(project_id, config)
+    except Exception:
+        return {"error": f"Project {project_id} not found"}, 404
+    if not can_manage_project(project):
+        return {"error": "Forbidden"}, 403
+
+    metadata = request.get_json().get("metadata", {})
+    persistance.update_project_metadata(project_id, metadata)
+    return {"message": "ok", "project_id": project_id}
 
 @app.route("/projects/<project_id>/phase/<int:phase_index>/add")
 def add_phase_response(project_id: str, phase_index: int):

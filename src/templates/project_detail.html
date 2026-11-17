@@ -60,6 +60,24 @@
 </div>
 {% endif %}
 
+{% if project_template %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Project information</h5>
+        {% if can_manage_project(project) %}
+        <a href="/projects/{{ project.id }}/edit" class="btn btn-sm btn-outline-primary">Edit project information</a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div id="instance-view"></div>
+    </div>
+</div>
+{% include "_instance_viewer.html" %}
+<script>
+    new InstanceViewer({{ project_template | tojson | safe }}, {{ project.metadata | tojson | safe }}, 'instance-view').render();
+</script>
+{% endif %}
+
 <div class="row mb-4">
     <div class="col-md-12">
         <h3>Project Phases</h3>
