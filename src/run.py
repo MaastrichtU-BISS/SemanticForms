@@ -142,6 +142,32 @@ def build_project_catalogue(projects: dict) -> dict:
         "hasPart": parts,
     }
 
+def build_instance_catalogue(instances: dict) -> dict:
+    """
+    JSON-LD document listing the (already searched/filtered/sorted) legacy instances: each
+    instance's @id, title, creation date and page URL. Full data is available by dereferencing the @ids.
+    """
+    base_url = config["template"]["instance_base_url"].rstrip("/")
+    parts = []
+    for instance_id, instance in instances.items():
+        entry = {
+            "@id": instance.get("metadata", {}).get("@id", f"{base_url}/instance/{instance_id}"),
+            "url": f"{base_url}/instance/{instance_id}",
+        }
+        title = instance.get("title")
+        if title and title != "No title found":  # persistance's placeholder for missing titles
+            entry["name"] = title
+        if instance.get("time"):
+            entry["createdOn"] = instance["time"]
+        parts.append(entry)
+    return {
+        "@context": CATALOGUE_CONTEXT,
+        "@id": f"{base_url}/",
+        "@type": "schema:Collection",
+        "name": "Instances",
+        "hasPart": parts,
+    }
+
 def can_manage_project(project) -> bool:
     """
     True if the logged-in user may edit or delete the given project (dict from persistance.get_project):
@@ -231,8 +257,9 @@ def index():
     # Get enhanced filter options with property analysis
     filter_options = persistance.get_enhanced_filter_options(table_columns)
 
-    if (accepts("application/json")) | (accepts("application/ld+json")):
-        return Response(json.dumps(instances), mimetype='application/json')
+    # Machine-readable listing for crawlers/APIs (issue #8)
+    if any(accepts(mimetype) for mimetype in RDF_FORMATS):
+        return rdf_response(build_instance_catalogue(instances))
     
     # Add sort info to template context
     sort_info = {
@@ -1036,8 +1063,9 @@ def instances_list():
     # Get enhanced filter options with property analysis
     filter_options = persistance.get_enhanced_filter_options(table_columns)
 
-    if (accepts("application/json")) | (accepts("application/ld+json")):
-        return Response(json.dumps(instances), mimetype='application/json')
+    # Machine-readable listing for crawlers/APIs (issue #8)
+    if any(accepts(mimetype) for mimetype in RDF_FORMATS):
+        return rdf_response(build_instance_catalogue(instances))
     
     # Add sort info to template context
     sort_info = {
