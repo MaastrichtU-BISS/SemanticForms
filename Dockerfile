@@ -1,7 +1,5 @@
 FROM python:3.8-bullseye
 
-RUN apt update && apt upgrade -y
-
 ADD src/ /app
 EXPOSE 5000
 WORKDIR /app
