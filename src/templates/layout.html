@@ -132,9 +132,11 @@
   function onLoad() {
     var timeObjects = document.querySelectorAll('time')
     timeObjects.forEach((timeObject) => {
-      var dateTime = timeObject.getAttribute('datetime')
-      timeObject.innerHTML = new Date(dateTime).toLocaleString()
-      console.log(timeObject.innerHTML)
+      var parsed = new Date(timeObject.getAttribute('datetime'))
+      // Keep the server-rendered text if the browser cannot parse the timestamp
+      if (!isNaN(parsed)) {
+        timeObject.textContent = parsed.toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'})
+      }
     });
   }
   

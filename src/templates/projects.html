@@ -65,6 +65,17 @@
                     </small>
                 </p>
                 
+                {% if phase_count %}
+                <div class="mb-2">
+                    <small class="text-muted">{{ project.phases_started }} / {{ phase_count }} phases started</small>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: {{ (100 * project.phases_started / phase_count) | round | int }}%"
+                             aria-valuenow="{{ project.phases_started }}" aria-valuemin="0" aria-valuemax="{{ phase_count }}"></div>
+                    </div>
+                </div>
+                {% endif %}
+
                 {% if project.description %}
                 <p class="card-text">
                     <small>{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</small>

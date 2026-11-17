@@ -29,7 +29,7 @@
         <h6 class="font-weight-bold">Progress</h6>
         <ul class="list-unstyled">
             <li><small>Total Phases: <strong>{{ phases|length }}</strong></small></li>
-            <li><small>Completed: <strong>{{ phase_responses|length }}</strong></small></li>
+            <li><small>Phases with a response: <strong>{{ phases | selectattr('name', 'in', phase_responses) | list | length }}</strong></small></li>
         </ul>
     </div>
 </div>
@@ -90,35 +90,44 @@
     {% for phase in phases %}
     <div class="col-md-12 mb-4">
         <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
+            {% set phase_name = phase.name %}
+            {% set responses = phase_responses.get(phase_name, []) %}
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     {{ phase.name }}
                 </h5>
+                {% if responses %}
+                <span class="badge badge-light">{{ responses|length }} response{{ 's' if responses|length != 1 }}</span>
+                {% else %}
+                <span class="badge badge-warning">Not started</span>
+                {% endif %}
             </div>
             <div class="card-body">
-                {% set phase_name = phase.name %}
-                {% set responses = phase_responses.get(phase_name, []) %}
-                
                 {% if responses %}
-                <h6>Completed registration form:</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-striped">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Created by</th>
                                 <th>Created</th>
-                                <th>Last Updated</th>
+                                <th>Last updated</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for response in responses %}
                             <tr>
-                                <td><code>{{ response.id[:8] }}...</code></td>
+                                <td>
+                                    <a href="/projects/{{ project.id }}/phase/{{ phase_name }}/response/{{ response.id }}">
+                                        {{ response.title or ('Response ' ~ response.id[:8]) }}
+                                    </a>
+                                </td>
+                                <td><small>{{ response.created_by or '–' }}</small></td>
                                 <td>
                                     <small>
                                         {% if response.created_on %}
-                                        {{ response.created_on[:10] }}
+                                        <time datetime="{{ response.created_on }}">{{ response.created_on[:10] }}</time>
                                         {% else %}
                                         N/A
                                         {% endif %}
@@ -127,9 +136,9 @@
                                 <td>
                                     <small>
                                         {% if response.updated_on %}
-                                        {{ response.updated_on[:10] }}
+                                        <time datetime="{{ response.updated_on }}">{{ response.updated_on[:10] }}</time>
                                         {% else %}
-                                        -
+                                        –
                                         {% endif %}
                                     </small>
                                 </td>

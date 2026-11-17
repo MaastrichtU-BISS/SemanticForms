@@ -437,7 +437,12 @@ def projects_list():
                                  key=lambda item: item[1].get('created_on', ''), 
                                  reverse=True))
     
-    return render_template("projects.html", projects=projects_sorted)
+    for project_id, project in projects_sorted.items():
+        project["phases_started"] = count_started_phases(project_id)
+
+    return render_template("projects.html",
+                           projects=projects_sorted,
+                           phase_count=len(config.get("projects", {}).get("phases", [])))
 
 @app.route("/projects/create", methods=["GET", "POST"])
 def create_project():
@@ -644,6 +649,12 @@ def project_detail(project_id: str):
                 return Response(rdfxml, mimetype='application/rdf+xml')
         
         # Default: render HTML view
+        for phase_name, responses in phase_responses.items():
+            phase_config = get_phase_config(phase_name)
+            for response in responses:
+                response["title"] = get_response_title(phase_config, response["data"])
+                response["created_by"] = response["data"].get("pav:createdBy", "")
+
         return render_template("project_detail.html", 
                              project=project,
                              project_template=get_project_metadata_template(),
@@ -652,6 +663,30 @@ def project_detail(project_id: str):
     except Exception as e:
         logging.error(f"Error loading project {project_id}: {e}")
         return redirect("/projects")
+
+def get_response_title(phase_config, response_data) -> str:
+    """
+    Human readable title of a phase response, using the phase template's title_predicate
+    (falls back to a 'Title'/'title' field). Returns an empty string if none is found.
+    """
+    template_config = (phase_config or {}).get("template", {})
+    candidates = [template_config.get("title_predicate"), "Title", "title"]
+    for predicate in [c for c in candidates if c]:
+        value = persistance._extract_cedar_field_value(response_data, predicate)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+def count_started_phases(project_id: str) -> int:
+    """
+    Number of configured phases of a project that have at least one response.
+    """
+    phase_names = {p.get("name") for p in config.get("projects", {}).get("phases", [])}
+    try:
+        responses = persistance.get_project_phase_responses(project_id)
+    except Exception:
+        return 0
+    return len([name for name, items in responses.items() if items and name in phase_names])
 
 PROJECT_INTERNAL_FIELDS = ["@id", "@type", "pav:createdOn", "pav:lastUpdatedOn", "created_by", "created_by_sub", "project_name", "description"]
 
