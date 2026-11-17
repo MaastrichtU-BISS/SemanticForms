@@ -758,6 +758,25 @@ def store_project_phase(project_id, phase_name):
         )
         return {"message": "ok", "response_id": response_id}
 
+@app.route("/projects/<project_id>/phase/<phase_name>/response/<response_id>/delete", methods=["POST"])
+def delete_phase_response(project_id: str, phase_name: str, response_id: str):
+    """
+    Delete a single phase response. Allowed for the project creator and admins.
+    """
+    if not session.get("user"):
+        return redirect("/login")
+
+    try:
+        project = persistance.get_project(project_id, config)
+        persistance.get_project_phase_response(project_id, response_id)
+    except Exception:
+        abort(404, description=f"Response {response_id} not found in project {project_id}")
+    if not can_manage_project(project):
+        abort(403, description="Only the project creator or an administrator can delete responses")
+
+    persistance.delete_project_phase_response(project_id, response_id)
+    return redirect(f"/projects/{project_id}")
+
 @app.route("/projects/<project_id>/delete", methods=["POST"])
 def delete_project(project_id: str):
     """

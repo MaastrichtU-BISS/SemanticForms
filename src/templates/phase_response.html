@@ -17,14 +17,16 @@
             <a href="/projects/{{ project.id }}/phase/{{ phase_name }}/response/{{ response_id }}/edit" class="btn btn-primary">
                 <i class="fas fa-edit"></i> Edit
             </a>
+            {% if can_manage_project(project) %}
             <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
                 <i class="fas fa-trash"></i> Delete
             </button>
             {% endif %}
+            {% endif %}
         </div>
     </div>
 
-    {% if user %}
+    {% if can_manage_project(project) %}
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -39,9 +41,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <a href="/projects/{{ project.id }}/phase/{{ phase_name }}/response/{{ response_id }}/delete">
-                        <button type="button" class="btn btn-danger">Yes, Delete</button>
-                    </a>
+                    <form method="post" action="/projects/{{ project.id }}/phase/{{ phase_name }}/response/{{ response_id }}/delete" class="d-inline">
+                        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                    </form>
                 </div>
             </div>
         </div>

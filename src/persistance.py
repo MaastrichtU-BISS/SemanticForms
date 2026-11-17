@@ -1012,6 +1012,17 @@ class FilePersistance(Persistance):
         
         raise Exception(f"Response {response_id} not found in project {project_id}")
     
+    def delete_project_phase_response(self, project_id: str, response_id: str):
+        """
+        Delete a single questionnaire response of a project phase.
+
+        input:
+            - project_id: the project identifier
+            - response_id: the response identifier
+        """
+        response = self.get_project_phase_response(project_id, response_id)
+        os.remove(response["filename"])
+
     def delete_project(self, project_id: str):
         """
         Delete a project and all its associated data.
