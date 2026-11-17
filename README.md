@@ -33,6 +33,25 @@ template:
 
 Mind that the variable `api_key` is only needed for templates which are not available in Cedar's OpenView.
 
+## Machine-readable access
+
+All listing and detail pages support content negotiation, so the data can be crawled without
+scraping HTML. Set the `Accept` header to one of `application/ld+json`, `application/json`,
+`application/n-triples`, `text/turtle` or `application/rdf+xml`:
+
+```bash
+# All projects (project mode) or all instances (legacy mode); / redirects to /projects in project mode
+curl -L -H "Accept: application/ld+json" http://localhost:5000/
+curl -H "Accept: text/turtle" http://localhost:5000/projects
+```
+
+The landing page returns a `schema:Collection` whose `hasPart` lists the `@id` of every project
+(with its name, creation date, page URL and the `@id`s of its phase responses) or instance. These
+`@id`s are dereferenceable and support the same formats.
+
+**Note:** the legacy `/` and `/instances` JSON response changed from an internal dictionary to this
+JSON-LD collection.
+
 ## Project Mode (Multi-Phase Workflow)
 
 SemanticForms now supports a **project mode** that allows organizing multiple questionnaires across different project phases. This is useful for tracking progress through multiple stages of work.

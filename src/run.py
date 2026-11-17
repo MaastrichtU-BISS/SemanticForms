@@ -74,6 +74,100 @@ def accepts(mimetype: str) -> bool:
     """
     return mimetype in (request.accept_mimetypes.best or "")
 
+# Machine-readable formats offered via content negotiation: mimetype -> rdflib serializer (None = JSON-LD as is)
+RDF_FORMATS = {
+    "application/ld+json": None,
+    "application/json": None,
+    "application/n-triples": "nt",
+    "text/turtle": "turtle",
+    "application/rdf+xml": "xml",
+}
+
+def rdf_response(data):
+    """
+    Return a Response with `data` (a JSON-LD document) in the format requested by the Accept header,
+    or None if the client did not ask for one of the RDF_FORMATS (i.e. wants HTML).
+    """
+    for mimetype, rdf_format in RDF_FORMATS.items():
+        if accepts(mimetype):
+            if rdf_format is None:
+                return Response(json.dumps(data, indent=2), mimetype=mimetype)
+            graph = Graph()
+            # Bind schema: to the http namespace used in the data (rdflib defaults to https://schema.org/)
+            graph.bind("schema", "http://schema.org/", override=True, replace=True)
+            graph.parse(data=json.dumps(data), format='json-ld')
+            return Response(graph.serialize(format=rdf_format), mimetype=mimetype)
+    return None
+
+# JSON-LD context for the machine-readable listing documents (project and instance catalogues)
+CATALOGUE_CONTEXT = {
+    "schema": "http://schema.org/",
+    "pav": "http://purl.org/pav/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "name": "schema:name",
+    "hasPart": {"@id": "schema:hasPart", "@type": "@id"},
+    "url": {"@id": "schema:url", "@type": "@id"},
+    "createdOn": {"@id": "pav:createdOn", "@type": "xsd:dateTime"},
+}
+
+def build_project_catalogue(projects: dict) -> dict:
+    """
+    JSON-LD document listing all projects (links + summary) for crawlers: each project's @id, name,
+    creation date, page URL and the @ids of its phase responses. Full data is available by
+    dereferencing these @ids.
+    """
+    base_url = config["template"]["instance_base_url"].rstrip("/")
+    parts = []
+    for project_id, project in projects.items():
+        metadata = project["metadata"]
+        try:
+            responses = persistance.get_project_phase_responses(project_id)
+        except Exception:
+            responses = {}
+        entry = {
+            "@id": metadata.get("@id", f"{base_url}/projects/{project_id}"),
+            "@type": "schema:Project",
+            "name": project.get("name"),
+            "url": f"{base_url}/projects/{project_id}",
+            "hasPart": [r["data"]["@id"] for items in responses.values() for r in items if "@id" in r["data"]],
+        }
+        if project.get("created_on"):
+            entry["createdOn"] = project["created_on"]
+        parts.append(entry)
+    return {
+        "@context": CATALOGUE_CONTEXT,
+        "@id": f"{base_url}/projects",
+        "@type": "schema:Collection",
+        "name": "Projects",
+        "hasPart": parts,
+    }
+
+def build_instance_catalogue(instances: dict) -> dict:
+    """
+    JSON-LD document listing the (already searched/filtered/sorted) legacy instances: each
+    instance's @id, title, creation date and page URL. Full data is available by dereferencing the @ids.
+    """
+    base_url = config["template"]["instance_base_url"].rstrip("/")
+    parts = []
+    for instance_id, instance in instances.items():
+        entry = {
+            "@id": instance.get("metadata", {}).get("@id", f"{base_url}/instance/{instance_id}"),
+            "url": f"{base_url}/instance/{instance_id}",
+        }
+        title = instance.get("title")
+        if title and title != "No title found":  # persistance's placeholder for missing titles
+            entry["name"] = title
+        if instance.get("time"):
+            entry["createdOn"] = instance["time"]
+        parts.append(entry)
+    return {
+        "@context": CATALOGUE_CONTEXT,
+        "@id": f"{base_url}/",
+        "@type": "schema:Collection",
+        "name": "Instances",
+        "hasPart": parts,
+    }
+
 def can_manage_project(project) -> bool:
     """
     True if the logged-in user may edit or delete the given project (dict from persistance.get_project):
@@ -163,8 +257,9 @@ def index():
     # Get enhanced filter options with property analysis
     filter_options = persistance.get_enhanced_filter_options(table_columns)
 
-    if (accepts("application/json")) | (accepts("application/ld+json")):
-        return Response(json.dumps(instances), mimetype='application/json')
+    # Machine-readable listing for crawlers/APIs (issue #8)
+    if any(accepts(mimetype) for mimetype in RDF_FORMATS):
+        return rdf_response(build_instance_catalogue(instances))
     
     # Add sort info to template context
     sort_info = {
@@ -292,25 +387,10 @@ def showInstance(identifier: str):
     with open(filename, "r") as f:
         jsonData = json.load(f)
     
-    # if accept method is text/plain return n-triples
-    if accepts("application/n-triples"):
-        # Convert jsonData to n-triples
-        g = Graph()
-        g.parse(data=json.dumps(jsonData), format='json-ld')
-        ntriples = g.serialize(format='nt')
-        return Response(ntriples, mimetype='application/n-triples')
-    
-    if accepts("application/json"):
-        return Response(json.dumps(jsonData), mimetype='application/json')
-    
-    if accepts("application/ld+json"):
-        return Response(json.dumps(jsonData), mimetype='application/ld+json')
-    
-    if accepts("application/rdf+xml"):
-        g = Graph()
-        g.parse(data=json.dumps(jsonData), format='json-ld')
-        rdfxml = g.serialize(format='xml')
-        return Response(rdfxml, mimetype='application/rdf+xml')
+    # Machine-readable formats (JSON-LD, N-Triples, Turtle, RDF/XML) via content negotiation
+    machine_readable = rdf_response(jsonData)
+    if machine_readable is not None:
+        return machine_readable
 
     # Get template for rendering the instance view
     templateObject = get_template()
@@ -454,7 +534,13 @@ def projects_list():
     projects_sorted = dict(sorted(projects.items(), 
                                  key=lambda item: item[1].get('created_on', ''), 
                                  reverse=True))
-    
+
+    # Machine-readable listing for crawlers/APIs (issue #8)
+    machine_readable = rdf_response(build_project_catalogue(projects_sorted)) \
+        if any(accepts(mimetype) for mimetype in RDF_FORMATS) else None
+    if machine_readable is not None:
+        return machine_readable
+
     for project_id, project in projects_sorted.items():
         project["phases_started"] = count_started_phases(project_id)
 
@@ -577,24 +663,9 @@ def view_phase_response(project_id: str, phase_name: str, response_id: str):
         if not phase_template:
             phase_template = get_template()
         
-        # Handle different response formats
-        if accepts("application/n-triples"):
-            g = Graph()
-            g.parse(data=json.dumps(response_data), format='json-ld')
-            ntriples = g.serialize(format='nt')
-            return Response(ntriples, mimetype='application/n-triples')
-        
-        if accepts("application/json"):
-            return Response(json.dumps(response_data), mimetype='application/json')
-        
-        if accepts("application/ld+json"):
-            return Response(json.dumps(response_data), mimetype='application/ld+json')
-        
-        if accepts("application/rdf+xml"):
-            g = Graph()
-            g.parse(data=json.dumps(response_data), format='json-ld')
-            rdfxml = g.serialize(format='xml')
-            return Response(rdfxml, mimetype='application/rdf+xml')
+        machine_readable = rdf_response(response_data)
+        if machine_readable is not None:
+            return machine_readable
         
         # Render HTML view
         project = persistance.get_project(project_id, config)
@@ -625,10 +696,7 @@ def project_detail(project_id: str):
         
         # Handle different response formats via content negotiation
         # For non-HTML formats, include both project metadata and references to phase responses
-        if accepts("application/n-triples") or \
-           accepts("application/json") or \
-           accepts("application/ld+json") or \
-           accepts("application/rdf+xml"):
+        if any(accepts(mimetype) for mimetype in RDF_FORMATS):
             
             # Create comprehensive project data with references to phase responses
             comprehensive_data = {
@@ -648,23 +716,9 @@ def project_detail(project_id: str):
                 comprehensive_data["phases"].append(phase_data)
             
             # Return in requested format
-            if accepts("application/n-triples"):
-                g = Graph()
-                g.parse(data=json.dumps(comprehensive_data), format='json-ld')
-                ntriples = g.serialize(format='nt')
-                return Response(ntriples, mimetype='application/n-triples')
-            
-            if accepts("application/json"):
-                return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/json')
-            
-            if accepts("application/ld+json"):
-                return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/ld+json')
-            
-            if accepts("application/rdf+xml"):
-                g = Graph()
-                g.parse(data=json.dumps(comprehensive_data), format='json-ld')
-                rdfxml = g.serialize(format='xml')
-                return Response(rdfxml, mimetype='application/rdf+xml')
+            machine_readable = rdf_response(comprehensive_data)
+            if machine_readable is not None:
+                return machine_readable
         
         # Default: render HTML view
         for phase_name, responses in phase_responses.items():
@@ -1009,8 +1063,9 @@ def instances_list():
     # Get enhanced filter options with property analysis
     filter_options = persistance.get_enhanced_filter_options(table_columns)
 
-    if (accepts("application/json")) | (accepts("application/ld+json")):
-        return Response(json.dumps(instances), mimetype='application/json')
+    # Machine-readable listing for crawlers/APIs (issue #8)
+    if any(accepts(mimetype) for mimetype in RDF_FORMATS):
+        return rdf_response(build_instance_catalogue(instances))
     
     # Add sort info to template context
     sort_info = {
