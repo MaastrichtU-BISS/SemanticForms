@@ -1,6 +1,4 @@
-FROM python:3.10-bullseye
-
-RUN apt update && apt upgrade -y
+FROM python:3.15-trixie
 
 ADD src/ /app
 EXPOSE 5000
