@@ -29,10 +29,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build frontend
-        id: build_frontend
-        run: |
-          cd cee && sh run_build.sh
       - name: Build container
         id: docker_build
         uses: docker/build-push-action@v4

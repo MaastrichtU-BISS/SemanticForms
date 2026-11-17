@@ -1,0 +1,55 @@
+# Usability test: ELSA / SemanticForms project mode
+
+**Tested:** https://elsa.better-health-project.eu (branch `project_functionality`, deployed version as of 2026-11-17)
+**Method:** I walked through the site anonymously and with a self-registered Keycloak account, scripting the tasks in a headless browser (Microsoft Edge via Playwright) at desktop (1280px) and mobile (375px) widths. I also reviewed the code of the project-mode routes and templates. Fixes were verified on a local instance using the production templates (CEDAR `2781be7e…`, `638e3edf…`, `e1c5e285…`, project metadata `100bf5b8…`).
+**Data hygiene:** I created a single test project (`ZZ usability test - delete me`) on the live site and deleted it afterwards. I didn't modify or delete any BETTER project.
+
+## Tasks performed
+
+| Task | Result on live site |
+|---|---|
+| Browse projects, phases and responses anonymously | Works. Content negotiation (JSON-LD) works with an `Accept` header |
+| Log in from a project page | Login works, but you land on `/projects` instead of the page you came from |
+| Register a new Keycloak account | Open self-registration with no email verification. The new account immediately sees **Delete** on every project |
+| Create a project (CEDAR metadata form) | Works (2.1 s) |
+| Submit an empty phase form | A native `alert()` lists raw keys such as `fairmodels_contact_person.familyName` |
+| Add, view and edit a Phase 1 response | Works (about 1.1 s per step). The response is listed as `f35f89bc...` |
+| Delete a response | **404 Not Found** |
+| View or edit project metadata after creation | Not possible (no UI, `/projects/<id>/edit` returns 404) |
+| Delete the project (owner) | Works |
+| Mobile (375px) | No horizontal scroll. The `>>` sidebar tab covers the content, the navbar wraps, and the response table's Actions column is squeezed |
+
+## Findings
+
+Severity: **Critical** = data can be lost or altered by anyone; **High** = a core task fails or is very hard to do; **Medium** = confusing or slow; **Low** = cosmetic or edge case.
+
+| # | Sev | Finding | Status |
+|---|---|---|---|
+| F1 | Critical | Keycloak allows self-registration, and **any logged-in user could delete any project**, because the only check was "is logged in" | Fixed in `4c856f7`: only the creator's Keycloak account can delete. SameSite=Lax cookie |
+| F2 | Critical | `POST/PUT /api/projects/<id>/phase/<name>/store` and `/api/cedar/store` had **no auth check**. An anonymous request reached the storage layer (500 on the live site) | Fixed in `c4d4a55`: 401. Unknown project or phase returns 404 |
+| F3 | High | The phase-response **Delete** button linked to a route that doesn't exist (404) | Fixed in `193aecb`: POST route + form, creator only |
+| F4 | High | Stored `@id`s (`…/instance/project/<id>[/phase/<rid>]`) returned 404, so they weren't dereferenceable (FAIR A1) | Fixed in `f5ed2f9`: 303 to the page; JSON-LD still works through content negotiation |
+| F5 | High | Login always redirected to `/` and lost the page you were on | Fixed in `cee0511`: `?next=` (same-site paths only) |
+| F6 | High | New project, Back to projects and progress were only in the sidebar, which is collapsed by default behind a `>>` tab. The navbar had no Projects link and there were no breadcrumbs | Fixed in `90e2ae5` |
+| F7 | High | Project metadata (title, contact person) was stored but never shown and couldn't be edited | Fixed in `99042d4`: Project information card + edit (creator only) |
+| F8 | Medium | Responses were listed by truncated UUID with raw `YYYY-MM-DD` slices. Nothing showed who created them | Fixed in `d700c3e`: title, author, localized dates |
+| F9 | Medium | There was no per-phase status and no progress on the project list. The sidebar label "Completed: N" counted phases that had any response | Fixed in `d700c3e`: badges, "x / N phases started" bar |
+| F10 | Medium | Responses didn't record their author. Project-mode timestamps had no timezone | Fixed in `ef606f1`: `pav:createdBy`, `pav:lastUpdatedBy`, offsets |
+| F11 | Medium | An unknown project silently redirected to the list. An unknown response showed bare text `Error: …` | Fixed in `f61d0e7`: 404/403 error page |
+| F12 | Medium | Every page view fetched the CEDAR template live (~0.6 s), and pages broke when CEDAR was down | Fixed in `2c1c9e4`: in-memory cache (`server.template_cache_seconds`, default 600) |
+| F13 | Low | Phase names were put into URLs unencoded | Fixed in `5381574` |
+| F14 | Medium | Without an `Accept` header (e.g. scripts, `requests`), project pages crashed and redirected to the list | Fixed in `e04d16b` |
+| F15 | Medium | The add-response form rendered for a project that doesn't exist, and saving then failed with a generic alert | Fixed in `c4d4a55` (404) |
+| F16 | Medium | Labels and validation messages show raw CEDAR keys (`givenName`, `familyName`, `fairmodels_contact_person.email`). Placeholder text ("Help Text") and generator boilerplate ("…schema generated by the CEDAR Template Editor 2.7.1") are shown to users | **Open.** Use `skos:prefLabel`/`schema:name` for labels and hide default descriptions in `form.html` and the viewer, or fix the labels in the CEDAR templates |
+| F17 | Medium | Any logged-in user can still **edit** any response. Projects created before this change have no recorded creator, so they can't be deleted or edited through the UI | **Open, a policy decision** on response editing. Existing BETTER projects will be re-created, so they'll get an owner |
+| F18 | Low | Validation uses a native `alert()` instead of inline field errors | Open |
+| F19 | Low | Mobile: the `>>` tab overlaps content, the navbar wraps, and the table's Actions column is squeezed | Open. Partly mitigated by F6 (the sidebar is no longer needed) |
+| F20 | Low | Phases 3 (Model description) and 4 (Evaluation) use the same Model Card template (`e1c5e285…`) | Check whether this is intended |
+| F21 | Low | Responses are keyed by phase *name*, so renaming a phase in `config.yaml` orphans its responses | Open. Consider stable phase IDs with a data migration |
+| F22 | Low | Project metadata has no `schema:isBasedOn` linking it to its CEDAR template | Open |
+| F23 | Info | Anyone can read all projects, including contact names and email addresses | Intended (anonymous read access); no change |
+
+## Deployment notes
+- Projects created before this change have no recorded creator, so nobody can delete them or edit their metadata through the UI. The BETTER projects will be re-created in the new version.
+- For readable response titles in phases 2–4, set `title_predicate` on each phase template (e.g. the Model Card title field). Phase 1 works out of the box (`Title`).
+- Optional: `server.template_cache_seconds` (default 600).

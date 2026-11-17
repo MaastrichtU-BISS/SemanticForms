@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h1 class="h3">
+                    {% if error.code == 403 %}Not allowed{% else %}Page not found{% endif %}
+                </h1>
+                <p class="text-muted mb-4">{{ error.description }}</p>
+                {% if projects_enabled %}
+                <a href="/projects" class="btn btn-primary">Back to projects</a>
+                {% else %}
+                <a href="/" class="btn btn-primary">Back to home</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

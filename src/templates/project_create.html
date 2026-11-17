@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+
+{% block sidebar %}
+<!-- Create Project Sidebar -->
+<div class="sidebar-header">
+    <h5 class="mb-0">➕ New Project</h5>
+    <small class="text-muted">Create a multi-phase project</small>
+</div>
+<div class="sidebar-content">
+    <div class="mb-3">
+        <a href="/projects" class="btn btn-sm btn-outline-secondary btn-block">
+            ← Back to Projects
+        </a>
+    </div>
+    
+    <hr>
+    
+    <div class="mt-3">
+        <h6 class="font-weight-bold">About Projects</h6>
+        <p><small>Projects allow you to organize questionnaires across multiple phases, tracking your progress through different stages of work.</small></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb bg-transparent px-0">
+        <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
+        <li class="breadcrumb-item active" aria-current="page">New project</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<h1>Create New Project</h1>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<!-- Simple form for project creation when no template configured -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Project Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/projects/create">
+                    <div class="form-group">
+                        <label for="project_name">Project Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="project_name" name="project_name" 
+                               placeholder="Enter project name" required>
+                        <small class="form-text text-muted">A descriptive name for your project</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" 
+                                  placeholder="Optional project description"></textarea>
+                        <small class="form-text text-muted">Provide additional context about this project</small>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Create Project</button>
+                        <a href="/projects" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">What happens next?</h6>
+                <ol class="small">
+                    <li>Your project will be created with a unique identifier</li>
+                    <li>You can add questionnaires for each project phase</li>
+                    <li>Track progress through all phases</li>
+                    <li>All data is stored as JSON-LD files</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
