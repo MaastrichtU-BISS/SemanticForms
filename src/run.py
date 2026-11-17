@@ -93,9 +93,54 @@ def rdf_response(data):
             if rdf_format is None:
                 return Response(json.dumps(data, indent=2), mimetype=mimetype)
             graph = Graph()
+            # Bind schema: to the http namespace used in the data (rdflib defaults to https://schema.org/)
+            graph.bind("schema", "http://schema.org/", override=True, replace=True)
             graph.parse(data=json.dumps(data), format='json-ld')
             return Response(graph.serialize(format=rdf_format), mimetype=mimetype)
     return None
+
+# JSON-LD context for the machine-readable listing documents (project and instance catalogues)
+CATALOGUE_CONTEXT = {
+    "schema": "http://schema.org/",
+    "pav": "http://purl.org/pav/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "name": "schema:name",
+    "hasPart": {"@id": "schema:hasPart", "@type": "@id"},
+    "url": {"@id": "schema:url", "@type": "@id"},
+    "createdOn": {"@id": "pav:createdOn", "@type": "xsd:dateTime"},
+}
+
+def build_project_catalogue(projects: dict) -> dict:
+    """
+    JSON-LD document listing all projects (links + summary) for crawlers: each project's @id, name,
+    creation date, page URL and the @ids of its phase responses. Full data is available by
+    dereferencing these @ids.
+    """
+    base_url = config["template"]["instance_base_url"].rstrip("/")
+    parts = []
+    for project_id, project in projects.items():
+        metadata = project["metadata"]
+        try:
+            responses = persistance.get_project_phase_responses(project_id)
+        except Exception:
+            responses = {}
+        entry = {
+            "@id": metadata.get("@id", f"{base_url}/projects/{project_id}"),
+            "@type": "schema:Project",
+            "name": project.get("name"),
+            "url": f"{base_url}/projects/{project_id}",
+            "hasPart": [r["data"]["@id"] for items in responses.values() for r in items if "@id" in r["data"]],
+        }
+        if project.get("created_on"):
+            entry["createdOn"] = project["created_on"]
+        parts.append(entry)
+    return {
+        "@context": CATALOGUE_CONTEXT,
+        "@id": f"{base_url}/projects",
+        "@type": "schema:Collection",
+        "name": "Projects",
+        "hasPart": parts,
+    }
 
 def can_manage_project(project) -> bool:
     """
@@ -462,7 +507,13 @@ def projects_list():
     projects_sorted = dict(sorted(projects.items(), 
                                  key=lambda item: item[1].get('created_on', ''), 
                                  reverse=True))
-    
+
+    # Machine-readable listing for crawlers/APIs (issue #8)
+    machine_readable = rdf_response(build_project_catalogue(projects_sorted)) \
+        if any(accepts(mimetype) for mimetype in RDF_FORMATS) else None
+    if machine_readable is not None:
+        return machine_readable
+
     for project_id, project in projects_sorted.items():
         project["phases_started"] = count_started_phases(project_id)
 
