@@ -1,6 +1,6 @@
 from operator import truediv
 import flask
-from flask import Flask, Response, request, redirect, url_for, session
+from flask import Flask, Response, request, redirect, url_for, session, abort
 from flask_cors import CORS
 from jinja2 import Template
 from pyparsing import Any
@@ -324,7 +324,8 @@ def store():
     """
     Function to store the actual data generated using the cedar embeddable editor.
     """
-    # TODO: Add authentication, as cedar is unaware of the user
+    if not session.get("user"):
+        return {"error": "Unauthorized"}, 401
 
     template = get_template()
     session_id = uuid.uuid4()
@@ -590,6 +591,9 @@ def add_phase_response(project_id: str, phase_index: int):
     if phase_index >= len(phases):
         return redirect(f"/projects/{project_id}")
     
+    if not persistance.project_exists(project_id):
+        abort(404, description=f"Project {project_id} not found")
+
     phase = phases[phase_index]
     phase_template = get_template_by_config(phase.get("template", {}))
     
@@ -677,16 +681,19 @@ def store_project_phase(project_id, phase_name):
     """
     Store a questionnaire response for a project phase.
     """
+    if not session.get("user"):
+        return {"error": "Unauthorized"}, 401
+
+    if not persistance.project_exists(project_id):
+        return {"error": f"Project {project_id} not found"}, 404
+
+    phase_config = get_phase_config(phase_name)
+    if phase_config is None:
+        return {"error": f"Phase {phase_name} is not configured"}, 404
+
     data_to_store = request.get_json()
     data_to_store_meta = data_to_store["metadata"]
-    
-    # Get phase configuration to retrieve template
-    phases = config.get("projects", {}).get("phases", [])
-    phase_template = None
-    for phase in phases:
-        if phase.get("name") == phase_name:
-            phase_template = get_template_by_config(phase.get("template", {}))
-            break
+    phase_template = get_template_by_config(phase_config.get("template", {}))
     
     if request.method == "POST":
         # New response
@@ -812,6 +819,15 @@ def instances_list():
                              filter_options=filter_options,
                              sort_info=sort_info,
                              is_project_mode=is_project_mode)
+
+def get_phase_config(phase_name):
+    """
+    Return the configuration of the phase with the given name, or None if not configured.
+    """
+    for phase in config.get("projects", {}).get("phases", []):
+        if phase.get("name") == phase_name:
+            return phase
+    return None
 
 def get_template_by_config(template_config):
     """
