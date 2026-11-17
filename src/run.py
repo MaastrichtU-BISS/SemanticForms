@@ -74,6 +74,29 @@ def accepts(mimetype: str) -> bool:
     """
     return mimetype in (request.accept_mimetypes.best or "")
 
+# Machine-readable formats offered via content negotiation: mimetype -> rdflib serializer (None = JSON-LD as is)
+RDF_FORMATS = {
+    "application/ld+json": None,
+    "application/json": None,
+    "application/n-triples": "nt",
+    "text/turtle": "turtle",
+    "application/rdf+xml": "xml",
+}
+
+def rdf_response(data):
+    """
+    Return a Response with `data` (a JSON-LD document) in the format requested by the Accept header,
+    or None if the client did not ask for one of the RDF_FORMATS (i.e. wants HTML).
+    """
+    for mimetype, rdf_format in RDF_FORMATS.items():
+        if accepts(mimetype):
+            if rdf_format is None:
+                return Response(json.dumps(data, indent=2), mimetype=mimetype)
+            graph = Graph()
+            graph.parse(data=json.dumps(data), format='json-ld')
+            return Response(graph.serialize(format=rdf_format), mimetype=mimetype)
+    return None
+
 def can_manage_project(project) -> bool:
     """
     True if the logged-in user may edit or delete the given project (dict from persistance.get_project):
@@ -292,25 +315,10 @@ def showInstance(identifier: str):
     with open(filename, "r") as f:
         jsonData = json.load(f)
     
-    # if accept method is text/plain return n-triples
-    if accepts("application/n-triples"):
-        # Convert jsonData to n-triples
-        g = Graph()
-        g.parse(data=json.dumps(jsonData), format='json-ld')
-        ntriples = g.serialize(format='nt')
-        return Response(ntriples, mimetype='application/n-triples')
-    
-    if accepts("application/json"):
-        return Response(json.dumps(jsonData), mimetype='application/json')
-    
-    if accepts("application/ld+json"):
-        return Response(json.dumps(jsonData), mimetype='application/ld+json')
-    
-    if accepts("application/rdf+xml"):
-        g = Graph()
-        g.parse(data=json.dumps(jsonData), format='json-ld')
-        rdfxml = g.serialize(format='xml')
-        return Response(rdfxml, mimetype='application/rdf+xml')
+    # Machine-readable formats (JSON-LD, N-Triples, Turtle, RDF/XML) via content negotiation
+    machine_readable = rdf_response(jsonData)
+    if machine_readable is not None:
+        return machine_readable
 
     # Get template for rendering the instance view
     templateObject = get_template()
@@ -577,24 +585,9 @@ def view_phase_response(project_id: str, phase_name: str, response_id: str):
         if not phase_template:
             phase_template = get_template()
         
-        # Handle different response formats
-        if accepts("application/n-triples"):
-            g = Graph()
-            g.parse(data=json.dumps(response_data), format='json-ld')
-            ntriples = g.serialize(format='nt')
-            return Response(ntriples, mimetype='application/n-triples')
-        
-        if accepts("application/json"):
-            return Response(json.dumps(response_data), mimetype='application/json')
-        
-        if accepts("application/ld+json"):
-            return Response(json.dumps(response_data), mimetype='application/ld+json')
-        
-        if accepts("application/rdf+xml"):
-            g = Graph()
-            g.parse(data=json.dumps(response_data), format='json-ld')
-            rdfxml = g.serialize(format='xml')
-            return Response(rdfxml, mimetype='application/rdf+xml')
+        machine_readable = rdf_response(response_data)
+        if machine_readable is not None:
+            return machine_readable
         
         # Render HTML view
         project = persistance.get_project(project_id, config)
@@ -625,10 +618,7 @@ def project_detail(project_id: str):
         
         # Handle different response formats via content negotiation
         # For non-HTML formats, include both project metadata and references to phase responses
-        if accepts("application/n-triples") or \
-           accepts("application/json") or \
-           accepts("application/ld+json") or \
-           accepts("application/rdf+xml"):
+        if any(accepts(mimetype) for mimetype in RDF_FORMATS):
             
             # Create comprehensive project data with references to phase responses
             comprehensive_data = {
@@ -648,23 +638,9 @@ def project_detail(project_id: str):
                 comprehensive_data["phases"].append(phase_data)
             
             # Return in requested format
-            if accepts("application/n-triples"):
-                g = Graph()
-                g.parse(data=json.dumps(comprehensive_data), format='json-ld')
-                ntriples = g.serialize(format='nt')
-                return Response(ntriples, mimetype='application/n-triples')
-            
-            if accepts("application/json"):
-                return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/json')
-            
-            if accepts("application/ld+json"):
-                return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/ld+json')
-            
-            if accepts("application/rdf+xml"):
-                g = Graph()
-                g.parse(data=json.dumps(comprehensive_data), format='json-ld')
-                rdfxml = g.serialize(format='xml')
-                return Response(rdfxml, mimetype='application/rdf+xml')
+            machine_readable = rdf_response(comprehensive_data)
+            if machine_readable is not None:
+                return machine_readable
         
         # Default: render HTML view
         for phase_name, responses in phase_responses.items():
