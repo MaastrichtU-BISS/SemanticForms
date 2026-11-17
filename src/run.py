@@ -108,6 +108,16 @@ def render_template(
     """
     return flask.render_template(template_name_or_list, user=session.get("user"), **context)
 
+@app.errorhandler(403)
+@app.errorhandler(404)
+def handle_http_error(error):
+    """
+    Render client errors as a page with a way back (JSON for API calls).
+    """
+    if request.path.startswith("/api/"):
+        return {"error": error.description}, error.code
+    return render_template("error.html", error=error), error.code
+
 @app.route("/")
 def index():
     # Check if project mode is enabled
@@ -588,7 +598,7 @@ def view_phase_response(project_id: str, phase_name: str, response_id: str):
                              phase_name=phase_name)
     except Exception as e:
         app.logger.error(f"Error viewing phase response: {str(e)}")
-        return f"Error: {str(e)}", 404
+        abort(404, description=f"The response {response_id} could not be found in this project.")
 
 @app.route("/projects/<project_id>")
 def project_detail(project_id: str):
@@ -662,7 +672,7 @@ def project_detail(project_id: str):
                              phase_responses=phase_responses)
     except Exception as e:
         logging.error(f"Error loading project {project_id}: {e}")
-        return redirect("/projects")
+        abort(404, description=f"The project {project_id} could not be found.")
 
 def get_response_title(phase_config, response_data) -> str:
     """
