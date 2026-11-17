@@ -193,7 +193,7 @@
           <li class="nav-item">
             <!-- if user is None, show as submit object -->
             {% if user is none %}
-            <form action="/login" method="post">
+            <form action="/login?next={{ request.full_path.rstrip('?') | urlencode }}" method="post">
               <a href="#" class="nav-link" onclick="this.closest('form').submit(); return false;">Login</a>
             </form>
             {% else %}

@@ -188,9 +188,28 @@ def index():
                              filter_options=filter_options,
                              sort_info=sort_info)
 
+def safe_next_url(url):
+    """
+    Only allow same-site relative paths as post-login redirect targets (prevents open redirects).
+    """
+    if url and url.startswith("/") and not url.startswith("//") and "\\" not in url:
+        return url
+    return None
+
+def redirect_to_login():
+    """
+    Redirect to the login page, remembering the current page to return to after login.
+    """
+    return redirect(url_for("login", next=request.full_path.rstrip("?")))
+
 # Login page
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    next_url = safe_next_url(request.args.get("next"))
+    if next_url:
+        session["next_url"] = next_url
+    else:
+        session.pop("next_url", None)
     redirect_uri = url_for("auth", _external=True, _scheme=os.getenv("APP_SCHEME", 'http'))
     return oauth.keycloak.authorize_redirect(redirect_uri)
 
@@ -199,7 +218,7 @@ def login():
 def auth():
     token = oauth.keycloak.authorize_access_token()
     session["user"] = oauth.keycloak.parse_id_token(token, nonce=token.get("nonce"))
-    return redirect("/")
+    return redirect(safe_next_url(session.pop("next_url", None)) or "/")
 
 # Logout
 @app.route("/logout", methods=["POST"])
@@ -213,7 +232,7 @@ def logout():
 def cee():
     # Test authentication or send HTTP 401 error
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
     
     bioportal_key = config.get("bioportal", {}).get("api_key", "")
     return render_template("form.html", 
@@ -224,7 +243,7 @@ def cee():
 def edit_cee(identifier: str):
     # Test authentication or to login page
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
     
     if identifier:
         print(f"Loading instance from file: {identifier}")
@@ -256,7 +275,7 @@ def edit_cee(identifier: str):
 def delete_instance(identifier: str):
     # Test authentication or to login page
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
     
     if not persistance.instance_exists(identifier):
         return redirect("/", error=f"Could not find instance with id {identifier}")
@@ -425,7 +444,7 @@ def create_project():
     """
     # Test authentication
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -616,7 +635,7 @@ def add_phase_response(project_id: str, phase_index: int):
     """
     # Test authentication
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -648,7 +667,7 @@ def edit_phase_response(project_id: str, phase_name: str, response_id: str):
     """
     # Test authentication
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
     
     if not config.get("projects", {}).get("enabled", False):
         return redirect("/")
@@ -764,7 +783,7 @@ def delete_phase_response(project_id: str, phase_name: str, response_id: str):
     Delete a single phase response. Allowed for the project creator and admins.
     """
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
 
     try:
         project = persistance.get_project(project_id, config)
@@ -784,7 +803,7 @@ def delete_project(project_id: str):
     """
     # Test authentication
     if not session.get("user"):
-        return redirect("/login")
+        return redirect_to_login()
 
     try:
         project = persistance.get_project(project_id, config)
