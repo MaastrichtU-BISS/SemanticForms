@@ -27,6 +27,8 @@ local_tz = get_localzone()
 
 load_dotenv()
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
+# Do not send the session cookie on cross-site POSTs (mitigates CSRF on delete actions)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 keycloak_realm = os.getenv("KEYCLOAK_REALM")
 keycloak_base_url = os.getenv("KEYCLOAK_BASE_URL")
@@ -69,6 +71,31 @@ def accepts(mimetype: str) -> bool:
     Requests without an Accept header (best is None) are treated as HTML requests.
     """
     return mimetype in (request.accept_mimetypes.best or "")
+
+def is_admin(user) -> bool:
+    """
+    True if the user is listed in projects.admins (by email, preferred_username or sub).
+    """
+    if not user:
+        return False
+    admins = config.get("projects", {}).get("admins", []) or []
+    return any(user.get(key) in admins for key in ("email", "preferred_username", "sub") if user.get(key))
+
+def can_manage_project(project) -> bool:
+    """
+    True if the logged-in user may edit or delete the given project (dict from persistance.get_project):
+    the creator of the project or a configured admin. Projects without a recorded creator can only be
+    managed by admins.
+    """
+    user = session.get("user")
+    if not user:
+        return False
+    if is_admin(user):
+        return True
+    owner_sub = (project or {}).get("metadata", {}).get("created_by_sub")
+    return owner_sub is not None and owner_sub == user.get("sub")
+
+app.jinja_env.globals["can_manage_project"] = can_manage_project
 
 def render_template(
     template_name_or_list: str | Template | list[str | Template],
@@ -412,7 +439,8 @@ def create_project():
         project_metadata = {
             "project_name": project_name,
             "description": request.form.get("description", ""),
-            "created_by": session.get("user", {}).get("name", "Unknown")
+            "created_by": session.get("user", {}).get("name", "Unknown"),
+            "created_by_sub": session.get("user", {}).get("sub")
         }
         
         project_id = persistance.create_project(project_name, project_metadata)
@@ -454,8 +482,8 @@ def store_project_metadata():
     metadata = data.get("metadata", {})
     
     # Add user info if available
-    if session.get("user"):
-        metadata["created_by"] = session.get("user", {}).get("name", "Unknown")
+    metadata["created_by"] = session["user"].get("name", "Unknown")
+    metadata["created_by_sub"] = session["user"].get("sub")
     
     # Don't extract or pass project_name separately - it's stored within the CEDAR template data
     # The name will be extracted dynamically from fields like "project_name", "name", or "title"
@@ -738,7 +766,14 @@ def delete_project(project_id: str):
     # Test authentication
     if not session.get("user"):
         return redirect("/login")
-    
+
+    try:
+        project = persistance.get_project(project_id, config)
+    except Exception:
+        abort(404, description=f"Project {project_id} not found")
+    if not can_manage_project(project):
+        abort(403, description="Only the project creator or an administrator can delete this project")
+
     persistance.delete_project(project_id)
     return redirect("/projects")
 
