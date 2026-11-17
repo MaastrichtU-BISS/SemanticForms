@@ -63,6 +63,13 @@ persistance = FilePersistance(folder_location=config['server']['storageFolder'],
                               title_uri=config['template']['title_predicate'],
                               base_url=config['template']['instance_base_url'] + "/instance")
 
+def accepts(mimetype: str) -> bool:
+    """
+    True if the best matching Accept mimetype of the request is the given type.
+    Requests without an Accept header (best is None) are treated as HTML requests.
+    """
+    return mimetype in (request.accept_mimetypes.best or "")
+
 def render_template(
     template_name_or_list: str | Template | list[str | Template],
     **context: Any
@@ -127,7 +134,7 @@ def index():
     # Get enhanced filter options with property analysis
     filter_options = persistance.get_enhanced_filter_options(table_columns)
 
-    if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
+    if (accepts("application/json")) | (accepts("application/ld+json")):
         return Response(json.dumps(instances), mimetype='application/json')
     
     # Add sort info to template context
@@ -238,20 +245,20 @@ def showInstance(identifier: str):
         jsonData = json.load(f)
     
     # if accept method is text/plain return n-triples
-    if "application/n-triples" in request.accept_mimetypes.best:
+    if accepts("application/n-triples"):
         # Convert jsonData to n-triples
         g = Graph()
         g.parse(data=json.dumps(jsonData), format='json-ld')
         ntriples = g.serialize(format='nt')
         return Response(ntriples, mimetype='application/n-triples')
     
-    if "application/json" in request.accept_mimetypes.best:
+    if accepts("application/json"):
         return Response(json.dumps(jsonData), mimetype='application/json')
     
-    if "application/ld+json" in request.accept_mimetypes.best:
+    if accepts("application/ld+json"):
         return Response(json.dumps(jsonData), mimetype='application/ld+json')
     
-    if "application/rdf+xml" in request.accept_mimetypes.best:
+    if accepts("application/rdf+xml"):
         g = Graph()
         g.parse(data=json.dumps(jsonData), format='json-ld')
         rdfxml = g.serialize(format='xml')
@@ -477,19 +484,19 @@ def view_phase_response(project_id: str, phase_name: str, response_id: str):
             phase_template = get_template()
         
         # Handle different response formats
-        if "application/n-triples" in request.accept_mimetypes.best:
+        if accepts("application/n-triples"):
             g = Graph()
             g.parse(data=json.dumps(response_data), format='json-ld')
             ntriples = g.serialize(format='nt')
             return Response(ntriples, mimetype='application/n-triples')
         
-        if "application/json" in request.accept_mimetypes.best:
+        if accepts("application/json"):
             return Response(json.dumps(response_data), mimetype='application/json')
         
-        if "application/ld+json" in request.accept_mimetypes.best:
+        if accepts("application/ld+json"):
             return Response(json.dumps(response_data), mimetype='application/ld+json')
         
-        if "application/rdf+xml" in request.accept_mimetypes.best:
+        if accepts("application/rdf+xml"):
             g = Graph()
             g.parse(data=json.dumps(response_data), format='json-ld')
             rdfxml = g.serialize(format='xml')
@@ -524,10 +531,10 @@ def project_detail(project_id: str):
         
         # Handle different response formats via content negotiation
         # For non-HTML formats, include both project metadata and references to phase responses
-        if "application/n-triples" in request.accept_mimetypes.best or \
-           "application/json" in request.accept_mimetypes.best or \
-           "application/ld+json" in request.accept_mimetypes.best or \
-           "application/rdf+xml" in request.accept_mimetypes.best:
+        if accepts("application/n-triples") or \
+           accepts("application/json") or \
+           accepts("application/ld+json") or \
+           accepts("application/rdf+xml"):
             
             # Create comprehensive project data with references to phase responses
             comprehensive_data = {
@@ -547,19 +554,19 @@ def project_detail(project_id: str):
                 comprehensive_data["phases"].append(phase_data)
             
             # Return in requested format
-            if "application/n-triples" in request.accept_mimetypes.best:
+            if accepts("application/n-triples"):
                 g = Graph()
                 g.parse(data=json.dumps(comprehensive_data), format='json-ld')
                 ntriples = g.serialize(format='nt')
                 return Response(ntriples, mimetype='application/n-triples')
             
-            if "application/json" in request.accept_mimetypes.best:
+            if accepts("application/json"):
                 return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/json')
             
-            if "application/ld+json" in request.accept_mimetypes.best:
+            if accepts("application/ld+json"):
                 return Response(json.dumps(comprehensive_data, indent=2), mimetype='application/ld+json')
             
-            if "application/rdf+xml" in request.accept_mimetypes.best:
+            if accepts("application/rdf+xml"):
                 g = Graph()
                 g.parse(data=json.dumps(comprehensive_data), format='json-ld')
                 rdfxml = g.serialize(format='xml')
@@ -789,7 +796,7 @@ def instances_list():
     # Get enhanced filter options with property analysis
     filter_options = persistance.get_enhanced_filter_options(table_columns)
 
-    if ("application/json" in request.accept_mimetypes.best) | ("application/ld+json" in request.accept_mimetypes.best):
+    if (accepts("application/json")) | (accepts("application/ld+json")):
         return Response(json.dumps(instances), mimetype='application/json')
     
     # Add sort info to template context
