@@ -101,7 +101,8 @@ that created it. Projects created before ownership was recorded cannot be delete
 
 1. From the projects list, click "Delete" on a project
 2. Confirm the deletion
-3. **Warning**: This will delete all project data including all phase questionnaires
+3. The project disappears from the tool. Its folder (including version history) is moved to
+   `data/_versions/project_{project_id}__deleted_{timestamp}/`, so it can be restored by moving it back.
 
 ## Data Storage
 
@@ -115,7 +116,11 @@ data/
 │   ├── project_metadata.jsonld
 │   ├── phase_Phase_1_Initial_Assessment_{response_id}.jsonld
 │   ├── phase_Phase_2_Development_{response_id}.jsonld
-│   └── phase_Phase_3_Evaluation_{response_id}.jsonld
+│   ├── phase_Phase_3_Evaluation_{response_id}.jsonld
+│   └── _versions/                      # previous versions, see "Version history" in the README
+│       ├── project_metadata__20261117T130712Z.jsonld
+│       └── phase_Phase_1_Initial_Assessment_{response_id}__20261117T130712Z.jsonld
+└── _versions/                          # legacy instance versions and deleted projects
 ```
 
 ### Project Metadata File
