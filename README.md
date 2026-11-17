@@ -52,6 +52,28 @@ The landing page returns a `schema:Collection` whose `hasPart` lists the `@id` o
 **Note:** the legacy `/` and `/instances` JSON response changed from an internal dictionary to this
 JSON-LD collection.
 
+## Version history
+
+Every edit keeps the previous version of a record (legacy instances, project phase responses and
+project metadata). Before a file is overwritten or deleted, it is copied to a `_versions/` folder next
+to it, named `<file name>__<UTC time of its last edit>.jsonld`, for example
+`data/_versions/<id>__20261117T130712.123456Z.jsonld`. Deleted projects are moved to
+`data/_versions/project_<id>__deleted_<time>/` as a whole. `_versions/` folders are never shown as
+current records.
+
+In the tool, each record has a **History** card listing the versions with their date and editor
+(`pav:lastUpdatedBy` / `pav:createdBy`). Versions are read-only and show the field-level changes
+compared to the previous version:
+
+- `/instance/<id>/versions/<version>`
+- `/projects/<project_id>/phase/<phase>/response/<response_id>/versions/<version>`
+- `/projects/<project_id>/versions/<version>` (project metadata)
+- `.../versions/current` shows what the latest edit changed
+
+Versions support the same content negotiation as current records; they are served with their own
+`@id` and `dcterms:isVersionOf` pointing to the record. History is not pruned automatically, so
+include `_versions/` in your backups and clean it up manually if it grows too large.
+
 ## Project Mode (Multi-Phase Workflow)
 
 SemanticForms now supports a **project mode** that allows organizing multiple questionnaires across different project phases. This is useful for tracking progress through multiple stages of work.

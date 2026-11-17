@@ -1,4 +1,18 @@
-import os, json, uuid, datetime
+import os, json, uuid, datetime, re, shutil
+
+# Sub folder (at any level of the storage folder) holding archived versions of records.
+# It is skipped when scanning for current records.
+VERSIONS_DIR = "_versions"
+VERSION_ID_PATTERN = re.compile(r"^\d{8}T\d{6}(\.\d{6})?Z(-\d+)?$")
+
+def version_timestamp(value) -> str:
+    """
+    Compact UTC timestamp (e.g. 20261117T130712.123456Z) used as version identifier / file postfix.
+    Accepts an ISO 8601 string (naive values are interpreted as local time) or a datetime.
+    """
+    moment = value if isinstance(value, datetime.datetime) else datetime.datetime.fromisoformat(value)
+    moment = moment.astimezone(datetime.timezone.utc)
+    return moment.strftime("%Y%m%dT%H%M%S") + (f".{moment.microsecond:06d}" if moment.microsecond else "") + "Z"
 
 class Persistance:
     def __init__(self):
@@ -27,6 +41,8 @@ class FilePersistance(Persistance):
         """
         self.__cached_items = { }
         for root, dirs, files in os.walk(self.__folder_location, topdown=True):
+            # Archived versions are not current records
+            dirs[:] = [d for d in dirs if d != VERSIONS_DIR]
             for myFile in files:
                 if myFile.endswith(".jsonld"):
                     action(filename=os.path.join(root, myFile))
@@ -694,7 +710,9 @@ class FilePersistance(Persistance):
                 - None
         """
         if id in self.__cached_items:
-            os.remove(self.__cached_items[id]["filename"])
+            filename = self.__cached_items[id]["filename"]
+            self._archive_version(filename)
+            os.remove(filename)
             del self.__cached_items[id]
         else:
             raise Exception(f"Could not find instance with id {id}")
@@ -716,10 +734,98 @@ class FilePersistance(Persistance):
             session_id = data["@id"].split("/")[-1]
 
         filename = os.path.join(self.__folder_location, f"{session_id}.jsonld")
+        self._archive_version(filename)
         with open(filename, 'w') as f:
             json.dump(data, f, indent=4)
         self.__parse_jsonld_file(filename)
     
+    # ============================================
+    # Versioning
+    # ============================================
+
+    def _archive_version(self, path: str):
+        """
+        Copy the current content of `path` (if it exists) to <dir>/_versions/<stem>__<timestamp>.jsonld,
+        where timestamp is the last edit time of that content. Call before overwriting or deleting a record.
+        """
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, 'r') as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+        edited = data.get("pav:lastUpdatedOn") or data.get("pav:createdOn")
+        try:
+            stamp = version_timestamp(edited)
+        except Exception:
+            stamp = version_timestamp(datetime.datetime.fromtimestamp(os.path.getmtime(path)).astimezone())
+
+        versions_folder = os.path.join(os.path.dirname(path), VERSIONS_DIR)
+        os.makedirs(versions_folder, exist_ok=True)
+        stem = os.path.basename(path)[:-len(".jsonld")]
+        target = os.path.join(versions_folder, f"{stem}__{stamp}.jsonld")
+        counter = 2
+        while os.path.exists(target):
+            target = os.path.join(versions_folder, f"{stem}__{stamp}-{counter}.jsonld")
+            counter += 1
+        shutil.copy2(path, target)
+        return target
+
+    def list_versions(self, path: str):
+        """
+        List archived versions of the record stored at `path`, newest first.
+
+        output:
+            - list of {"version", "filename", "edited_on", "edited_by"}
+        """
+        versions_folder = os.path.join(os.path.dirname(path), VERSIONS_DIR)
+        stem = os.path.basename(path)[:-len(".jsonld")]
+        prefix = f"{stem}__"
+        versions = []
+        if not os.path.isdir(versions_folder):
+            return versions
+        for name in os.listdir(versions_folder):
+            if not (name.startswith(prefix) and name.endswith(".jsonld")):
+                continue
+            version = name[len(prefix):-len(".jsonld")]
+            if not VERSION_ID_PATTERN.match(version):
+                continue
+            filename = os.path.join(versions_folder, name)
+            try:
+                with open(filename, 'r') as f:
+                    data = json.load(f)
+            except Exception:
+                data = {}
+            versions.append({
+                "version": version,
+                "filename": filename,
+                "edited_on": data.get("pav:lastUpdatedOn") or data.get("pav:createdOn", ""),
+                "edited_by": data.get("pav:lastUpdatedBy") or data.get("pav:createdBy") or data.get("created_by") or "",
+            })
+        # Version ids are UTC timestamps, so lexical order is chronological (counter suffix sorts after)
+        versions.sort(key=lambda v: (v["version"].split("-")[0], len(v["version"]), v["version"]), reverse=True)
+        return versions
+
+    def get_version(self, path: str, version: str):
+        """
+        Load an archived version of the record stored at `path`.
+        """
+        if not VERSION_ID_PATTERN.match(version or ""):
+            raise Exception(f"Invalid version {version}")
+        stem = os.path.basename(path)[:-len(".jsonld")]
+        filename = os.path.join(os.path.dirname(path), VERSIONS_DIR, f"{stem}__{version}.jsonld")
+        if not os.path.exists(filename):
+            raise Exception(f"Version {version} not found")
+        with open(filename, 'r') as f:
+            return json.load(f)
+
+    def project_metadata_file(self, project_id: str) -> str:
+        """
+        Path of the metadata file of a project.
+        """
+        return os.path.join(self.__folder_location, f"project_{project_id}", "project_metadata.jsonld")
+
     # ============================================
     # Project Management Methods
     # ============================================
@@ -950,7 +1056,8 @@ class FilePersistance(Persistance):
         # Sanitize phase name for filename
         safe_phase_name = phase_name.replace(" ", "_").replace(":", "").replace("/", "_")
         filename = os.path.join(project_folder, f"phase_{safe_phase_name}_{response_id}.jsonld")
-        
+        self._archive_version(filename)
+
         with open(filename, 'w') as f:
             json.dump(response_data, f, indent=4)
         
@@ -1036,6 +1143,7 @@ class FilePersistance(Persistance):
             - response_id: the response identifier
         """
         response = self.get_project_phase_response(project_id, response_id)
+        self._archive_version(response["filename"])
         os.remove(response["filename"])
 
     def delete_project(self, project_id: str):
@@ -1048,17 +1156,21 @@ class FilePersistance(Persistance):
         if not self.project_exists(project_id):
             raise Exception(f"Project {project_id} not found")
         
-        import shutil
+        # Keep the project (including its version history) as an archive instead of removing it
         project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
-        shutil.rmtree(project_folder)
+        archive_folder = os.path.join(self.__folder_location, VERSIONS_DIR)
+        os.makedirs(archive_folder, exist_ok=True)
+        stamp = version_timestamp(datetime.datetime.now().astimezone())
+        shutil.move(project_folder, os.path.join(archive_folder, f"project_{project_id}__deleted_{stamp}"))
     
-    def update_project_metadata(self, project_id: str, updated_metadata: dict):
+    def update_project_metadata(self, project_id: str, updated_metadata: dict, user_name: str = None):
         """
-        Update project metadata.
+        Update project metadata. The previous metadata is archived as a version.
         
         input:
             - project_id: the project identifier
             - updated_metadata: updated project metadata
+            - user_name: name of the user making the change (stored as pav:lastUpdatedBy)
         """
         if not self.project_exists(project_id):
             raise Exception(f"Project {project_id} not found")
@@ -1076,6 +1188,9 @@ class FilePersistance(Persistance):
                         updated_metadata[key] = existing[key]
         
         updated_metadata["pav:lastUpdatedOn"] = datetime.datetime.now().astimezone().isoformat()
-        
+        if user_name:
+            updated_metadata["pav:lastUpdatedBy"] = user_name
+
+        self._archive_version(metadata_file)
         with open(metadata_file, 'w') as f:
             json.dump(updated_metadata, f, indent=4)
