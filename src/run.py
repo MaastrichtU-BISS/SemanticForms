@@ -500,6 +500,7 @@ def store():
         fileNameJson = os.path.join(config['server']['storageFolder'], f"{session_id}.jsonld")
         target["schema:isBasedOn"] = template['@id']
         target["pav:createdOn"] = datetime.datetime.now(local_tz).isoformat()
+        target["pav:createdBy"] = session["user"].get("name")
         target["@id"] = f"{config['template']['instance_base_url']}/instance/{session_id}"
     else:
         data_to_store_info = data_to_store["info"]
@@ -509,6 +510,14 @@ def store():
         target["schema:isBasedOn"] = data_to_store_info["isBasedOn"]
         target["pav:createdOn"] = data_to_store_info["createdOn"]
         target["pav:lastUpdatedOn"] = datetime.datetime.now(local_tz).isoformat()
+        target["pav:lastUpdatedBy"] = session["user"].get("name")
+        # The form does not round-trip the creator; keep it from the stored record
+        try:
+            stored = persistance.get_instance(target["@id"].split("/")[-1])["metadata"]
+            if "pav:createdBy" in stored:
+                target["pav:createdBy"] = stored["pav:createdBy"]
+        except Exception:
+            pass
     
     persistance.save_instance(data_to_store_meta)
 
