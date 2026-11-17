@@ -750,7 +750,7 @@ class FilePersistance(Persistance):
         if project_name is not None:
             project_metadata["project_name"] = project_name
         
-        project_metadata["pav:createdOn"] = datetime.datetime.now().isoformat()
+        project_metadata["pav:createdOn"] = datetime.datetime.now().astimezone().isoformat()
         
         metadata_file = os.path.join(project_folder, "project_metadata.jsonld")
         with open(metadata_file, 'w') as f:
@@ -899,7 +899,7 @@ class FilePersistance(Persistance):
         project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
         return os.path.exists(project_folder)
     
-    def save_project_phase_response(self, project_id: str, phase_name: str, response_data: dict):
+    def save_project_phase_response(self, project_id: str, phase_name: str, response_data: dict, user_name: str = None):
         """
         Save a questionnaire response for a specific project phase.
         
@@ -907,11 +907,22 @@ class FilePersistance(Persistance):
             - project_id: the project identifier
             - phase_name: the name of the phase
             - response_data: the JSON-LD response data
+            - user_name: name of the user creating/updating the response (stored as pav:createdBy/pav:lastUpdatedBy)
         output:
             - response_id: unique identifier for the response
         """
         if not self.project_exists(project_id):
             raise Exception(f"Project {project_id} not found")
+
+        # On update, keep the original provenance of the stored response
+        if "@id" in response_data:
+            try:
+                existing = self.get_project_phase_response(project_id, response_data["@id"].split("/")[-1])["data"]
+                for key in ["pav:createdOn", "pav:createdBy"]:
+                    if key in existing:
+                        response_data[key] = existing[key]
+            except Exception:
+                pass
         
         project_folder = os.path.join(self.__folder_location, f"project_{project_id}")
         
@@ -927,9 +938,13 @@ class FilePersistance(Persistance):
         response_data["project_id"] = f"{self.__base_url}/project/{project_id}"
         
         if "pav:createdOn" not in response_data:
-            response_data["pav:createdOn"] = datetime.datetime.now().isoformat()
+            response_data["pav:createdOn"] = datetime.datetime.now().astimezone().isoformat()
+            if user_name:
+                response_data["pav:createdBy"] = user_name
         else:
-            response_data["pav:lastUpdatedOn"] = datetime.datetime.now().isoformat()
+            response_data["pav:lastUpdatedOn"] = datetime.datetime.now().astimezone().isoformat()
+            if user_name:
+                response_data["pav:lastUpdatedBy"] = user_name
         
         # Save to file
         # Sanitize phase name for filename
@@ -1060,7 +1075,7 @@ class FilePersistance(Persistance):
                     if key in existing:
                         updated_metadata[key] = existing[key]
         
-        updated_metadata["pav:lastUpdatedOn"] = datetime.datetime.now().isoformat()
+        updated_metadata["pav:lastUpdatedOn"] = datetime.datetime.now().astimezone().isoformat()
         
         with open(metadata_file, 'w') as f:
             json.dump(updated_metadata, f, indent=4)

@@ -834,7 +834,8 @@ def edit_phase_response(project_id: str, phase_name: str, response_id: str):
     
     # Remove metadata fields for form
     form_data = response_data.copy()
-    for key in ["@id", "pav:createdOn", "schema:isBasedOn", "project_phase", "project_id", "pav:lastUpdatedOn"]:
+    for key in ["@id", "pav:createdOn", "schema:isBasedOn", "project_phase", "project_id", "pav:lastUpdatedOn",
+                "pav:createdBy", "pav:lastUpdatedBy"]:
         form_data.pop(key, None)
     
     bioportal_key = config.get("bioportal", {}).get("api_key", "")
@@ -876,7 +877,8 @@ def store_project_phase(project_id, phase_name):
         response_id = persistance.save_project_phase_response(
             project_id, 
             phase_name, 
-            data_to_store_meta
+            data_to_store_meta,
+            user_name=session["user"].get("name")
         )
         return {"message": "ok", "response_id": response_id}
     else:
@@ -892,7 +894,8 @@ def store_project_phase(project_id, phase_name):
         response_id = persistance.save_project_phase_response(
             project_id,
             phase_name,
-            data_to_store_meta
+            data_to_store_meta,
+            user_name=session["user"].get("name")
         )
         return {"message": "ok", "response_id": response_id}
 
