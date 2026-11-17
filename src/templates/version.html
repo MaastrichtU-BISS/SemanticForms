@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb bg-transparent px-0">
+        {% for label, url in breadcrumbs %}
+        <li class="breadcrumb-item"><a href="{{ url }}">{{ label }}</a></li>
+        {% endfor %}
+        <li class="breadcrumb-item active" aria-current="page">{% if version.version == 'current' %}Latest changes{% else %}Version {{ version.version }}{% endif %}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="alert {{ 'alert-info' if version.version == 'current' else 'alert-warning' }} d-flex justify-content-between align-items-center flex-wrap" role="status">
+    <div>
+        {% if version.version == 'current' %}
+        <strong>Current version</strong>, last edited
+        {% if version.edited_on %}<time datetime="{{ version.edited_on }}">{{ version.edited_on[:16] }}</time>{% endif %}
+        by {{ version.edited_by or 'unknown' }}.
+        {% else %}
+        <strong>Read-only version</strong> from
+        {% if version.edited_on %}<time datetime="{{ version.edited_on }}">{{ version.edited_on[:16] }}</time>{% else %}an unknown date{% endif %}
+        by {{ version.edited_by or 'unknown' }}.
+        This is not the current version.
+        {% endif %}
+    </div>
+    <a href="{{ current_url }}" class="btn btn-sm btn-outline-dark mt-2 mt-md-0">{{ 'Back' if version.version == 'current' else 'View current version' }}</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Changes compared to the previous version</h5>
+    </div>
+    <div class="card-body">
+        {% if not has_previous %}
+        <p class="text-muted mb-2"><em>This is the oldest recorded version; all values are shown as added.</em></p>
+        {% endif %}
+        {% if changes %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr><th>Field</th><th>Before</th><th>After</th></tr>
+                </thead>
+                <tbody>
+                    {% for change in changes %}
+                    <tr>
+                        <td>
+                            <code>{{ change.field }}</code>
+                            <span class="badge {{ 'badge-success' if change.kind == 'added' else 'badge-danger' if change.kind == 'removed' else 'badge-info' }}">{{ change.kind }}</span>
+                        </td>
+                        <td class="text-muted" style="white-space: pre-wrap;">{{ change.before if change.before is not none else '–' }}</td>
+                        <td style="white-space: pre-wrap;">{{ change.after if change.after is not none else '–' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0"><em>No field changes compared to the previous version.</em></p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0">Content of this version</h5>
+    </div>
+    <div class="card-body">
+        <div id="instance-view"></div>
+    </div>
+</div>
+
+{% include "_instance_viewer.html" %}
+<script>
+    new InstanceViewer({{ templateObject | tojson | safe }}, {{ jsonData | tojson | safe }}, 'instance-view').render();
+</script>
+{% endblock %}

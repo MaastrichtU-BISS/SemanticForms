@@ -110,6 +110,111 @@ CATALOGUE_CONTEXT = {
     "createdOn": {"@id": "pav:createdOn", "@type": "xsd:dateTime"},
 }
 
+# Keys that are bookkeeping rather than form content; ignored when comparing versions
+DIFF_IGNORED_KEYS = {"@context", "@id", "@type", "schema:isBasedOn", "project_phase", "project_id",
+                     "project_name", "created_by", "created_by_sub"}
+
+def _flatten_for_diff(value, prefix, out):
+    """
+    Flatten a JSON-LD document into {"Element.Field[1]": value} for comparison.
+    """
+    if isinstance(value, dict):
+        if "@value" in value:
+            if value["@value"] not in (None, ""):
+                out[prefix] = value["@value"]
+            return
+        if "@id" in value and set(value) <= {"@id", "rdfs:label", "@type"}:
+            # Ontology term or link: show the label when available
+            out[prefix] = f"{value['rdfs:label']} ({value['@id']})" if value.get("rdfs:label") else value["@id"]
+            return
+        for key, item in value.items():
+            if key in DIFF_IGNORED_KEYS or (not prefix and key.startswith("pav:")):
+                continue
+            _flatten_for_diff(item, f"{prefix}.{key}" if prefix else key, out)
+    elif isinstance(value, list):
+        for index, item in enumerate(value, start=1):
+            _flatten_for_diff(item, f"{prefix}[{index}]", out)
+    elif value not in (None, ""):
+        out[prefix] = value
+
+def diff_versions(older: dict, newer: dict) -> list:
+    """
+    Field-level differences between two versions of a record:
+    [{"field", "before", "after", "kind": "added" | "removed" | "changed"}].
+    """
+    before, after = {}, {}
+    _flatten_for_diff(older or {}, "", before)
+    _flatten_for_diff(newer or {}, "", after)
+    changes = []
+    for field in list(after) + [f for f in before if f not in after]:
+        old, new = before.get(field), after.get(field)
+        if old == new:
+            continue
+        kind = "added" if field not in before else "removed" if field not in after else "changed"
+        changes.append({"field": field, "before": old, "after": new, "kind": kind})
+    return changes
+
+def history_context(current_path: str, current_data: dict, history_base: str) -> dict:
+    """
+    Template variables for the version history card of a record.
+    """
+    return {
+        "versions": persistance.list_versions(current_path),
+        "history_base": history_base,
+        "current_edited_on": current_data.get("pav:lastUpdatedOn") or current_data.get("pav:createdOn", ""),
+        "current_edited_by": current_data.get("pav:lastUpdatedBy") or current_data.get("pav:createdBy")
+                             or current_data.get("created_by", ""),
+    }
+
+def render_version(current_path: str, version: str, template_object, current_url: str, breadcrumbs: list):
+    """
+    Read-only view (HTML or RDF via content negotiation) of an archived version of the record stored at
+    current_path, including the changes compared to the previous version. The pseudo version "current"
+    shows the current record with the changes made in its latest edit.
+    """
+    versions = persistance.list_versions(current_path)
+    if version == "current":
+        with open(current_path, "r") as f:
+            data = json.load(f)
+        if any(accepts(mimetype) for mimetype in RDF_FORMATS):
+            return rdf_response(data)
+        previous = persistance.get_version(current_path, versions[0]["version"]) if versions else None
+        info = {"version": "current", **{k.replace("current_", ""): v for k, v in
+                history_context(current_path, data, "").items() if k.startswith("current_")}}
+        return render_template("version.html",
+                               jsonData=data,
+                               templateObject=template_object,
+                               version=info,
+                               has_previous=previous is not None,
+                               changes=diff_versions(previous, data),
+                               current_url=current_url,
+                               breadcrumbs=breadcrumbs)
+
+    try:
+        data = persistance.get_version(current_path, version)
+    except Exception:
+        abort(404, description=f"Version {version} could not be found.")
+
+    if any(accepts(mimetype) for mimetype in RDF_FORMATS):
+        # Give the archived copy its own identifier so it is not confused with the current record
+        document = dict(data)
+        # (percent-encode the path: phase names contain spaces, which are not valid in an IRI)
+        document["@id"] = config["template"]["instance_base_url"].rstrip("/") + quote(request.path, safe="/")
+        document["http://purl.org/dc/terms/isVersionOf"] = {"@id": data.get("@id")}
+        return rdf_response(document)
+
+    ids = [v["version"] for v in versions]
+    index = ids.index(version)
+    previous = persistance.get_version(current_path, ids[index + 1]) if index + 1 < len(ids) else None
+    return render_template("version.html",
+                           jsonData=data,
+                           templateObject=template_object,
+                           version=versions[index],
+                           has_previous=previous is not None,
+                           changes=diff_versions(previous, data),
+                           current_url=current_url,
+                           breadcrumbs=breadcrumbs)
+
 def build_project_catalogue(projects: dict) -> dict:
     """
     JSON-LD document listing all projects (links + summary) for crawlers: each project's @id, name,
@@ -398,7 +503,22 @@ def showInstance(identifier: str):
     return render_template("instance.html", 
                          jsonData=jsonData, 
                          identifier=identifier,
-                         templateObject=templateObject)
+                         templateObject=templateObject,
+                         **history_context(filename, jsonData, f"/instance/{identifier}/versions/"))
+
+@app.route("/instance/<identifier>/versions/<version>")
+def show_instance_version(identifier: str, version: str):
+    """
+    Read-only view of an archived version of a legacy instance.
+    """
+    try:
+        filename = persistance.get_instance(identifier)['filename']
+    except Exception:
+        abort(404, description=f"Instance {identifier} not found")
+    return render_version(filename, version,
+                          template_object=get_template(),
+                          current_url=f"/instance/{identifier}",
+                          breadcrumbs=[("Home", "/"), ("Instance", f"/instance/{identifier}")])
 
 
 # In-memory cache of CEDAR templates: {template_id: (fetched_at, template)}
@@ -678,12 +798,14 @@ def view_phase_response(project_id: str, phase_name: str, response_id: str):
         
         # Render HTML view
         project = persistance.get_project(project_id, config)
+        history_base = f"/projects/{project_id}/phase/{quote(phase_name, safe='')}/response/{response_id}/versions/"
         return render_template("phase_response.html",
                              jsonData=response_data,
                              templateObject=phase_template,
                              response_id=response_id,
                              project=project,
-                             phase_name=phase_name)
+                             phase_name=phase_name,
+                             **history_context(response["filename"], response_data, history_base))
     except Exception as e:
         app.logger.error(f"Error viewing phase response: {str(e)}")
         abort(404, description=f"The response {response_id} could not be found in this project.")
@@ -740,10 +862,45 @@ def project_detail(project_id: str):
                              project=project,
                              project_template=get_project_metadata_template(),
                              phases=phases,
-                             phase_responses=phase_responses)
+                             phase_responses=phase_responses,
+                             **history_context(persistance.project_metadata_file(project_id), project_metadata,
+                                               f"/projects/{project_id}/versions/"))
     except Exception as e:
         logging.error(f"Error loading project {project_id}: {e}")
         abort(404, description=f"The project {project_id} could not be found.")
+
+@app.route("/projects/<project_id>/phase/<phase_name>/response/<response_id>/versions/<version>")
+def view_phase_response_version(project_id: str, phase_name: str, response_id: str, version: str):
+    """
+    Read-only view of an archived version of a phase response.
+    """
+    try:
+        project = persistance.get_project(project_id, config)
+        response = persistance.get_project_phase_response(project_id, response_id)
+    except Exception:
+        abort(404, description=f"Response {response_id} not found in project {project_id}")
+    phase_config = get_phase_config(phase_name)
+    template_object = get_template_by_config(phase_config.get("template", {})) if phase_config else get_template()
+    current_url = f"/projects/{project_id}/phase/{quote(phase_name, safe='')}/response/{response_id}"
+    return render_version(response["filename"], version,
+                          template_object=template_object,
+                          current_url=current_url,
+                          breadcrumbs=[("Projects", "/projects"), (project["name"], f"/projects/{project_id}"),
+                                       (phase_name, current_url)])
+
+@app.route("/projects/<project_id>/versions/<version>")
+def view_project_version(project_id: str, version: str):
+    """
+    Read-only view of an archived version of the project metadata.
+    """
+    try:
+        project = persistance.get_project(project_id, config)
+    except Exception:
+        abort(404, description=f"Project {project_id} not found")
+    return render_version(persistance.project_metadata_file(project_id), version,
+                          template_object=get_project_metadata_template() or {},
+                          current_url=f"/projects/{project_id}",
+                          breadcrumbs=[("Projects", "/projects"), (project["name"], f"/projects/{project_id}")])
 
 def get_response_title(phase_config, response_data) -> str:
     """

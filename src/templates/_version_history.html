@@ -1,0 +1,32 @@
+{# Version history card. Expects: versions, history_base, current_edited_on, current_edited_by #}
+{% if versions %}
+<div class="card shadow-sm mt-4 version-history">
+    <div class="card-header">
+        <h5 class="mb-0">History</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr><th>Edited</th><th>By</th><th></th></tr>
+            </thead>
+            <tbody>
+                <tr class="table-active">
+                    <td>
+                        {% if current_edited_on %}<time datetime="{{ current_edited_on }}">{{ current_edited_on[:16] }}</time>{% else %}–{% endif %}
+                        <span class="badge badge-success">current</span>
+                    </td>
+                    <td>{{ current_edited_by or 'unknown' }}</td>
+                    <td class="text-right"><a href="{{ history_base }}current" class="btn btn-sm btn-outline-secondary">Changes</a></td>
+                </tr>
+                {% for v in versions %}
+                <tr>
+                    <td>{% if v.edited_on %}<time datetime="{{ v.edited_on }}">{{ v.edited_on[:16] }}</time>{% else %}–{% endif %}</td>
+                    <td>{{ v.edited_by or 'unknown' }}</td>
+                    <td class="text-right"><a href="{{ history_base }}{{ v.version }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}

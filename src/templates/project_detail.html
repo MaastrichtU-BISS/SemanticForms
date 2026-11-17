@@ -72,6 +72,7 @@
         <div id="instance-view"></div>
     </div>
 </div>
+{% include "_version_history.html" %}
 {% include "_instance_viewer.html" %}
 <script>
     new InstanceViewer({{ project_template | tojson | safe }}, {{ project.metadata | tojson | safe }}, 'instance-view').render();
