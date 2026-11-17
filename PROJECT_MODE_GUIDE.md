@@ -159,9 +159,9 @@ When project mode is disabled (or not configured), the application works in lega
 
 ### Project Mode Endpoints
 
-- `GET /projects` - List all projects
+- `GET /projects` - List all projects (HTML, or a machine-readable list via the `Accept` header, see README)
 - `GET /projects/create` - Create project form (GET) / Create project (POST)
-- `GET /projects/{project_id}` - View project details
+- `GET /projects/{project_id}` - View project details (also JSON-LD/RDF via `Accept`)
 - `GET /projects/{project_id}/phase/{phase_index}/add` - Add phase questionnaire
 - `GET /projects/{project_id}/phase/{phase_name}/response/{response_id}/edit` - Edit phase questionnaire
 - `POST /api/projects/{project_id}/phase/{phase_name}/store` - Store phase response
